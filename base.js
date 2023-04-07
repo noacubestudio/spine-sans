@@ -11,11 +11,11 @@ const unitsLowerHalf = 3;
 const unitsColumnHeight = 6;
 const unitsColumnWidth = 3;
 const unitsColumnGap = 1;
-const oneColumnWideLetters = ['i', 'l'];
+const oneColumnWideLetters = ['i', 'l', ' ', 'j'];
 const threeColumnWideLetters = ['m', 'w'];
 
 // Load the font file
-opentype.load('fonts/230406_test.ttf', function(err, font) {
+opentype.load('fonts/Columna_Bold_WIP_v1.ttf', function(err, font) {
     if (err) {
         alert('Could not load font: ' + err);
         return;
@@ -43,7 +43,7 @@ function redraw(font) {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    drawInputText(inputText, font, 1, 2);
+    drawInputText(inputText, font, 2, 4);
 }
 
 function drawInputText(text, font, x, y) {
