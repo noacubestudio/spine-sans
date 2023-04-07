@@ -1,23 +1,8 @@
-let canvas; let ctx;
+let canvas; let ctx; let guiTextInput;
 
 // input
-const inputText = 'na';
+let inputText = '';
 const validKeysForTextInput = 'an';
-
-// window.addEventListener("keydown", handleKeypress(e));
-
-// function handleKeypress(e) {
-//     if (e.defaultPrevented) {
-//         return; // Do nothing if the event was already processed
-//     }
-
-//     if (validKeysForTextInput.includes(e.key)) {
-//         inputText += e.key;
-//     }
-
-//     // Cancel the default action to avoid it being handled twice
-//     e.preventDefault();
-// }
 
 // font details
 const unitSize = 41;
@@ -36,15 +21,30 @@ opentype.load('fonts/230406_test.ttf', function(err, font) {
         return;
     }
 
+    // gui
     canvas = document.getElementById('canvas');
+
+    guiTextInput = document.getElementById("inputArea");
+    guiTextInput.addEventListener("input", (e) => {
+        inputText = guiTextInput.value;
+        redraw(font);
+    });
+
+    // draw
     ctx = canvas.getContext('2d');
-    ctx.scale(1, -1)
-    ctx.translate(0, -canvas.height)
+    ctx.scale(1, -1);
+    ctx.translate(0, -canvas.height);
+
+    inputText = guiTextInput.value;
+    redraw(font);
+});
+
+function redraw(font) {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     drawInputText(inputText, font, 1, 2);
-});
+}
 
 function drawInputText(text, font, x, y) {
     ctx.save();
