@@ -101,7 +101,7 @@ function updateWordsArray(inputString) {
         });
     }
 
-    const splitWords = inputString.split(/\s+/);
+    const splitWords = inputString.toLowerCase().split(/[^a-z]/i);
     words = [];
     splitWords.forEach((wordString) => {
         if (wordString.length > 0) {
