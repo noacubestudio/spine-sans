@@ -1,0 +1,48 @@
+body {
+    background-color: #000;
+    font-family: 'Public Sans Roman', sans-serif;
+}
+
+@font-face {
+    font-family: 'Public Sans Roman';
+    src: url('fonts/Public-Sans-Roman-VF.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+.container {
+    display: flex;
+    flex-grow: 1;
+}
+
+.main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+}
+
+.topToolbar {
+    height: 60px;
+}
+
+.topToolbar input {
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding-inline: 30px;
+    height: 100%;
+}
+
+#mainCanvas {
+    flex-grow: 1;
+}
+
+.sidebar {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 400px;
+}
+
+

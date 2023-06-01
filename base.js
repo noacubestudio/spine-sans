@@ -1,14 +1,3 @@
-let canvasEl; let ctx; 
-let textInputEl;
-
-// wip
-//let buffer3d; let buffer2d;
-
-
-// input
-let inputText = 'aa';
-const skipColumnDrawingChars = ". ";
-
 // load fonts into this
 const loadedFonts = {
     bold: {},
@@ -35,74 +24,138 @@ const fontMetrics = {
 // but those are set...
 // also, I need to have an a/b set to lerp between? or at least swap out with animation
 const parameters = {
-    colHeight: 1,
-    fontSize: 20
+    colHeight: 8,
+    fontSize: 12
 }
 
 
-// load p5 first
-window.setup = () => {
-    // p5 setup
-    //buffer2d = createGraphics(1360, 800);
-    //buffer3d = createGraphics(1360, 800, WEBGL);
+// DOM elements
+let mainCanvasEl; let ctx; 
+let textInputEl;
 
+// current text to display, also contains column counts
+// computed from the actual string
+let words = [];
+
+
+function updateCanvasSize() {
+    const newWidth = Math.floor(window.innerWidth - 400);
+    mainCanvasEl.width = newWidth;
+    mainCanvasEl.style.width = newWidth + 'px';
+}
+
+mainCanvasEl = document.getElementById('mainCanvas');
+window.addEventListener('DOMContentLoaded', updateCanvasSize);
+
+
+window.setup = () => {
     // load json 
     fetch('./fonts/SpineSans_Bold_svg.json')
     .then((response) => response.json())
     .then((json) => jsonLoaded(json, "bold"));
 }
-
 function jsonLoaded(json, fontNameKey) {
-    // gui
-    canvasEl = document.getElementById('canvas');
 
-    textInputEl = document.getElementById("inputArea");
-    textInputEl.addEventListener("input", (e) => {
-        inputText = textInputEl.value;
+    // p5 setup
+    //buffer3d = createGraphics(1360, 800, WEBGL);
+
+    // gui
+    
+    textInputEl = document.getElementById("textInput");
+
+    mainCanvasEl.addEventListener('click', () => {
+        if (document.activeElement !== textInputEl) {
+            textInputEl.focus();
+        }
+    });
+    textInputEl.addEventListener("input", () => {
+        updateWordsArray(textInputEl.value);
         redraw();
     });
+      
+    window.addEventListener('resize', () => {updateCanvasSize(); redraw()});
 
     // draw
-    ctx = canvasEl.getContext('2d');
+    ctx = mainCanvasEl.getContext('2d');
 
     //json
     loadedFonts[fontNameKey] = json;
 
-    inputText = textInputEl.value;
+    updateWordsArray(textInputEl.value);
     redraw();
+}
+
+function updateWordsArray(inputString) {
+    function countColumnsOfChar(char) {
+        return "wm".includes(char) ? 3
+            : "ijltf. ".includes(char) ? 1
+            : 2; // Default value if not found in single or triple column sets
+    }
+    
+    function arrFromWordString(text) {
+        return [...text].map((c) => {
+            return {
+                char: c, 
+                columns: countColumnsOfChar(c)
+            } 
+        });
+    }
+
+    const splitWords = inputString.split(/\s+/);
+    words = [];
+    splitWords.forEach((wordString) => {
+        if (wordString.length > 0) {
+            const charsArr = arrFromWordString(wordString);
+            const totalCols = charsArr.reduce((total, obj) => total + obj.columns, 0);
+            words.push({chars: charsArr, totalCols})
+        }
+    });
 }
 
 function redraw() {
     // background
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, mainCanvasEl.width, mainCanvasEl.height);
 
     // draw text and columns
-    ctx.fillStyle = 'white';
-    drawText(50, 70, inputText, "bold", parameters);
+    ctx.fillStyle = '#ffffffff';
+    
+    const styleMetrics = fontMetrics["bold"];
+    const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
+    const advanceHeight = styleMetrics.halfHeight * 2 + parameters.colHeight + 3;
+
+    let colsAdvanced = 0;
+    let linesAdvanced = 0;
+
+    words.forEach((word) => {
+        if (colsAdvanced + word.totalCols > 20 && word.totalCols <= 20) {
+            colsAdvanced = 0;
+            linesAdvanced++;
+        }
+        const xPos = 30 + colsAdvanced * advanceWidth * parameters.fontSize;
+        const yPos = 50 + linesAdvanced * advanceHeight * parameters.fontSize;
+        drawWord(xPos, yPos, word, "bold", parameters);
+        colsAdvanced += (word.totalCols + 1);
+    });
+    
 
     // buffer test drawing
-    // buffer2d.background(255);
-    // buffer2d.fill(0);
-    // buffer2d.rect(100, 100, 200, 200);
-
     // buffer3d.fill(0);
     // buffer3d.box(100);
-
     // ctx.drawImage(buffer3d.canvas, 0, 0, 1360, 800);
 }
 
-function drawText(x, y, text, style, parameters) {
+function drawWord(x, y, wordObj, style, parameters) {
     ctx.save();
     ctx.translate(x, y);
     
     const scale = parameters.fontSize || 30;
     ctx.scale(scale, scale);
-
-    const charObjArray = charObjArrayFromString(text);
+    ctx.lineWidth = 2/scale;
 
     // draw the halves
-    charObjArray.forEach((charObj) => {
+    ctx.save();
+    wordObj.chars.forEach((charObj) => {
         // draw
         drawGlyphHalves(charObj.char, style, parameters.colHeight);
 
@@ -111,26 +164,14 @@ function drawText(x, y, text, style, parameters) {
         const advanceWidth = charObj.columns * (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
         ctx.translate(advanceWidth, 0);
     });
+    ctx.restore();
 
     // draw the columns
     // WIP...
+    ctx.translate(0, fontMetrics[style].halfHeight);
+    drawColumns(wordObj.chars, wordObj.totalCols, style, parameters);
     
     ctx.restore();
-}
-
-function getColumnCount(char) {
-    return "wm".includes(char) ? 3
-        : "ijltf. ".includes(char) ? 1
-        : 2; // Default value if not found in single or triple column sets
-}
-
-function charObjArrayFromString(text) {
-    return [...text].map((c) => {
-        return {
-            char: c, 
-            columns: getColumnCount(c)
-        } 
-    });
 }
 
 function drawGlyphHalves(char, style, colHeight) {
@@ -163,6 +204,62 @@ function drawGlyphHalves(char, style, colHeight) {
     ctx.restore();
 }
 
+function drawColumns(charObjArray, totalCols, style, parameters) {
+    if (parameters.colHeight === undefined || parameters.colHeight === 0) return;
+    if (charObjArray.length === 0) return;
+
+    const colWidth = fontMetrics[style].colWidth;
+    const advanceWidth = colWidth + fontMetrics[style].colGap;
+
+    // basic rectangles
+    // for (let col = 0; col < totalCols; col++) {
+    //     ctx.fillRect(col * (advanceWidth), 0, colWidth, parameters.colHeight);
+    // }
+
+    // clipping rectangle
+    ctx.beginPath();
+    ctx.rect(0, 0, advanceWidth * (totalCols-1) + colWidth, parameters.colHeight);
+    // ctx.strokeStyle = "red";
+    // ctx.stroke();
+
+    ctx.save();
+    ctx.clip();
+
+    // bend effect
+    for (let topCol = -1; topCol < totalCols; topCol++) {
+        curvedRect(advanceWidth * topCol, 0, colWidth, parameters.colHeight, advanceWidth)
+    }
+
+    // end clipping
+    ctx.restore();
+}
+
+function curvedRect(x, y, width, height, xBottomOffset) {
+    ctx.beginPath();
+
+    // Top side
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+
+    // Right side with vertical bezier handle
+    ctx.bezierCurveTo(
+        x + width, y + height * 0.5, 
+        x + width + xBottomOffset, y + height * 0.5, 
+        x + width + xBottomOffset, y + height
+    );
+
+    // Bottom side
+    ctx.lineTo(x + xBottomOffset, y + height);
+
+    // Left side with vertical bezier handle
+    ctx.bezierCurveTo(
+        x + xBottomOffset, y + height * 0.5,
+        x, y + height * 0.5,
+        x, y
+    );
+
+    ctx.fill();
+}
 
 
 // function drawColumns(start, count, type) {

@@ -3,19 +3,20 @@
     <head>
         <meta charset="UTF-8">
         <title>Spine Sans</title>
+        <link rel="stylesheet" href="reset.css">
+        <link rel="stylesheet" href="styles.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-
     </head>
-    <style>
-        body {
-            background-color: #111;
-        }
-    </style>
     <body>
         <script type="module" src="base.js"></script>
         <div class="container">
-            <textarea rows="1" name="inputArea" id="inputArea">june</textarea>
-            <canvas id="canvas" width="1360" height="800" class="text"></canvas>
+            <div class="main">
+                <div class="topToolbar">
+                    <input name="textInput" id="textInput"></input>
+                </div>
+                <canvas id="mainCanvas" height="1000px"></canvas>
+            </div>
+            <div class="sidebar"></div>
         </div>
     </body>
 </html>
