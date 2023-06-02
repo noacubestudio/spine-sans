@@ -24,7 +24,9 @@ const fontMetrics = {
 // but those are set...
 // also, I need to have an a/b set to lerp between? or at least swap out with animation
 const parameters = {
-    colHeight: 8,
+    topFont: "bold",
+    bottomFont: "double",
+    colHeight: 16,
     fontSize: 12
 }
 
@@ -47,22 +49,30 @@ function updateCanvasSize() {
 mainCanvasEl = document.getElementById('mainCanvas');
 window.addEventListener('DOMContentLoaded', updateCanvasSize);
 
+textInputEl = document.getElementById("textInput");
+
 
 window.setup = () => {
-    // load json 
-    fetch('./fonts/SpineSans_Bold_svg.json')
-    .then((response) => response.json())
-    .then((json) => jsonLoaded(json, "bold"));
+    // load jsons 
+    const font1Promise = fetch('./fonts/SpineSans_Bold_svg.json').then((response) => response.json());
+    const font2Promise = fetch('./fonts/SpineSans_Double_svg.json').then((response) => response.json());
+    Promise.all([font1Promise, font2Promise])
+    .then((results) => {
+        loadedFonts["bold"] = results[0];
+        loadedFonts["double"] = results[1];
+        jsonFontsLoaded();
+    })
+    .catch((error) => {
+        console.error("Error loading fonts:", error);
+    });
 }
-function jsonLoaded(json, fontNameKey) {
+
+function jsonFontsLoaded() {
 
     // p5 setup
     //buffer3d = createGraphics(1360, 800, WEBGL);
 
     // gui
-    
-    textInputEl = document.getElementById("textInput");
-
     mainCanvasEl.addEventListener('click', () => {
         if (document.activeElement !== textInputEl) {
             textInputEl.focus();
@@ -78,9 +88,6 @@ function jsonLoaded(json, fontNameKey) {
     // draw
     ctx = mainCanvasEl.getContext('2d');
 
-    //json
-    loadedFonts[fontNameKey] = json;
-
     updateWordsArray(textInputEl.value);
     redraw();
 }
@@ -88,7 +95,7 @@ function jsonLoaded(json, fontNameKey) {
 function updateWordsArray(inputString) {
     function countColumnsOfChar(char) {
         return "wm".includes(char) ? 3
-            : "ijltf. ".includes(char) ? 1
+            : "ijltfr".includes(char) ? 1
             : 2; // Default value if not found in single or triple column sets
     }
     
@@ -120,21 +127,22 @@ function redraw() {
     // draw text and columns
     ctx.fillStyle = '#ffffffff';
     
-    const styleMetrics = fontMetrics["bold"];
+    const styleMetrics = fontMetrics[parameters.topFont];
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
     const advanceHeight = styleMetrics.halfHeight * 2 + parameters.colHeight + 3;
 
+    const maxColsInLine = 26;
     let colsAdvanced = 0;
     let linesAdvanced = 0;
 
     words.forEach((word) => {
-        if (colsAdvanced + word.totalCols > 20 && word.totalCols <= 20) {
+        if (colsAdvanced + word.totalCols > maxColsInLine && word.totalCols <= maxColsInLine) {
             colsAdvanced = 0;
             linesAdvanced++;
         }
         const xPos = 30 + colsAdvanced * advanceWidth * parameters.fontSize;
         const yPos = 50 + linesAdvanced * advanceHeight * parameters.fontSize;
-        drawWord(xPos, yPos, word, "bold", parameters);
+        drawWord(xPos, yPos, word, parameters);
         colsAdvanced += (word.totalCols + 1);
     });
     
@@ -145,7 +153,7 @@ function redraw() {
     // ctx.drawImage(buffer3d.canvas, 0, 0, 1360, 800);
 }
 
-function drawWord(x, y, wordObj, style, parameters) {
+function drawWord(x, y, wordObj, parameters) {
     ctx.save();
     ctx.translate(x, y);
     
@@ -157,10 +165,10 @@ function drawWord(x, y, wordObj, style, parameters) {
     ctx.save();
     wordObj.chars.forEach((charObj) => {
         // draw
-        drawGlyphHalves(charObj.char, style, parameters.colHeight);
+        drawGlyphHalves(charObj.char, parameters);
 
         // advance to next character
-        const styleMetrics = fontMetrics[style];
+        const styleMetrics = fontMetrics[parameters.topFont];
         const advanceWidth = charObj.columns * (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
         ctx.translate(advanceWidth, 0);
     });
@@ -168,16 +176,19 @@ function drawWord(x, y, wordObj, style, parameters) {
 
     // draw the columns
     // WIP...
-    ctx.translate(0, fontMetrics[style].halfHeight);
-    drawColumns(wordObj.chars, wordObj.totalCols, style, parameters);
+    ctx.translate(0, fontMetrics[parameters.topFont].halfHeight);
+    drawColumns(wordObj.chars, wordObj.totalCols, parameters);
     
     ctx.restore();
 }
 
-function drawGlyphHalves(char, style, colHeight) {
+function drawGlyphHalves(char, parameters) {
+    const colHeight = parameters.colHeight;
+
     // get the svg data
-    const svgGlyphObj = loadedFonts[style].characters[char];
-    if (svgGlyphObj === undefined) {
+    const svgGlyphTop = loadedFonts[parameters.topFont].characters[char];
+    const svgGlyphBot = loadedFonts[parameters.bottomFont].characters[char];
+    if (svgGlyphTop === undefined || svgGlyphBot === undefined) {
         console.log(char + " was not found in the font object");
         ctx.translate(4, 0);
         return;
@@ -187,124 +198,87 @@ function drawGlyphHalves(char, style, colHeight) {
 
     // draw top
     ctx.save();
-    if (svgGlyphObj.top.up !== undefined) ctx.translate(0, -Number(svgGlyphObj.top.up));
-    if (svgGlyphObj.top.left !== undefined) ctx.translate(-Number(svgGlyphObj.top.left), 0);
-    svgGlyphObj.top.paths.forEach((path) => ctx.fill(new Path2D(path)));
+    if (svgGlyphTop.top.up !== undefined) ctx.translate(0, -Number(svgGlyphTop.top.up));
+    if (svgGlyphTop.top.left !== undefined) ctx.translate(-Number(svgGlyphTop.top.left), 0);
+    svgGlyphTop.top.paths.forEach((path) => ctx.fill(new Path2D(path)));
     ctx.restore();
 
     // go down top half height and column height
-    ctx.translate(0, fontMetrics[style].halfHeight + colHeight);
+    ctx.translate(0, fontMetrics[parameters.topFont].halfHeight + colHeight);
 
     // draw bottom
     ctx.save();
-    if (svgGlyphObj.bottom.left !== undefined) ctx.translate(-Number(svgGlyphObj.bottom.left), 0);
-    svgGlyphObj.bottom.paths.forEach((path) => ctx.fill(new Path2D(path)));
+    if (svgGlyphBot.bottom.left !== undefined) ctx.translate(-Number(svgGlyphTop.bottom.left), 0);
+    svgGlyphBot.bottom.paths.forEach((path) => ctx.fill(new Path2D(path)));
     ctx.restore();
 
     ctx.restore();
 }
 
-function drawColumns(charObjArray, totalCols, style, parameters) {
+function drawColumns(charObjArray, totalCols, parameters) {
     if (parameters.colHeight === undefined || parameters.colHeight === 0) return;
     if (charObjArray.length === 0) return;
 
-    const colWidth = fontMetrics[style].colWidth;
-    const advanceWidth = colWidth + fontMetrics[style].colGap;
+    //default
+    const colWidth = fontMetrics["bold"].colWidth;
+    const advanceWidth = colWidth + fontMetrics["bold"].colGap;
+
+    // clipping rectangle
+    ctx.beginPath();
+    ctx.rect(0, 0, advanceWidth * (totalCols-1) + colWidth, parameters.colHeight);
+    ctx.save();
+    ctx.clip();
+
+    
+    // effect stuff
+    const topTotalCols = totalCols * fontMetrics[parameters.topFont].colMultiplier;
+    const bottomTotalCols = totalCols * fontMetrics[parameters.bottomFont].colMultiplier;
+    const maxTotalCols = Math.max(topTotalCols, bottomTotalCols);
 
     // basic rectangles
     // for (let col = 0; col < totalCols; col++) {
     //     ctx.fillRect(col * (advanceWidth), 0, colWidth, parameters.colHeight);
     // }
 
-    // clipping rectangle
-    ctx.beginPath();
-    ctx.rect(0, 0, advanceWidth * (totalCols-1) + colWidth, parameters.colHeight);
-    // ctx.strokeStyle = "red";
-    // ctx.stroke();
-
-    ctx.save();
-    ctx.clip();
-
     // bend effect
-    for (let topCol = -1; topCol < totalCols; topCol++) {
-        curvedRect(advanceWidth * topCol, 0, colWidth, parameters.colHeight, advanceWidth)
+    const bendCols = 0;
+    const topWidth = fontMetrics[parameters.topFont].colWidth;
+    const bottomWidth = fontMetrics[parameters.bottomFont].colWidth;
+    const topAdvanceWidth = topWidth + fontMetrics[parameters.topFont].colGap;
+    const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
+
+    for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
+        curvedRect(topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
     }
+
 
     // end clipping
     ctx.restore();
 }
 
-function curvedRect(x, y, width, height, xBottomOffset) {
+function curvedRect(xTop, xBottom, y, widthTop, widthBottom, height) {
     ctx.beginPath();
 
     // Top side
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + width, y);
+    ctx.moveTo(xTop, y);
+    ctx.lineTo(xTop + widthTop, y);
 
     // Right side with vertical bezier handle
     ctx.bezierCurveTo(
-        x + width, y + height * 0.5, 
-        x + width + xBottomOffset, y + height * 0.5, 
-        x + width + xBottomOffset, y + height
+        xTop + widthTop, y + height * 0.5, 
+        xBottom + widthBottom, y + height * 0.5, 
+        xBottom + widthBottom, y + height
     );
 
     // Bottom side
-    ctx.lineTo(x + xBottomOffset, y + height);
+    ctx.lineTo(xBottom, y + height);
 
     // Left side with vertical bezier handle
     ctx.bezierCurveTo(
-        x + xBottomOffset, y + height * 0.5,
-        x, y + height * 0.5,
-        x, y
+        xBottom, y + height * 0.5,
+        xTop, y + height * 0.5,
+        xTop, y
     );
 
     ctx.fill();
 }
-
-
-// function drawColumns(start, count, type) {
-//     if (count === undefined || count < 1) return;
-
-//     ctx.save();
-
-//     ctx.translate((xsColumn+xsGap) * stepSize * start, 0);
-
-//     ctx.rect(0, 0, (count * xsColumn + (count-1)*xsGap)*stepSize, ysColumn*stepSize)
-//     ctx.clip();
-
-//     if (type === 'repeat') {
-//         for (let i = 0; i < count; i++) {
-//             ctx.fillStyle = 'white';
-//             ctx.fillRect(0, 0, xsColumn * stepSize, ysColumn * stepSize);
-
-//             ctx.translate((xsColumn+xsGap) * stepSize * 1, 0);
-//         }
-//     } else if (type === "curveRight") {
-//         ctx.translate((xsColumn+xsGap) * stepSize * -1, 0);
-//         for (let i = 0; i < count+1; i++) {
-//             ctx.fillStyle = 'white';
-//             ctx.beginPath();
-//             ctx.moveTo(0, 0);
-//             //go right
-//             ctx.lineTo(xsColumn*stepSize, 0);
-//             //go up
-//             ctx.bezierCurveTo(
-//                 (xsColumn                 )*stepSize, ysColumn*stepSize*0.5, 
-//                 (xsColumn*2+xsGap)*stepSize, ysColumn*stepSize*0.5,
-//                 (xsColumn*2+xsGap)*stepSize, ysColumn*stepSize*1
-//             );
-//             //go left
-//             ctx.lineTo((xsColumn+xsGap)*stepSize, ysColumn*stepSize*1);
-//             //go down
-//             ctx.bezierCurveTo(
-//                 (xsColumn+xsGap)*stepSize, ysColumn*stepSize*0.5,
-//                 0, ysColumn*stepSize*0.5,
-//                 0, 0
-//             );
-//             ctx.fill();
-//             ctx.translate((xsColumn+xsGap) * stepSize * 1, 0);
-//         }
-//     }
-
-//     ctx.restore();
-// }
