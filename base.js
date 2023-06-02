@@ -63,6 +63,7 @@ window.addEventListener('DOMContentLoaded', updateMainCanvasSize);
 let textInputEl = document.getElementById("textInput");
 
 window.setup = () => {
+    noCanvas();
     // load jsons 
     const font1Promise = fetch('./fonts/SpineSans_Bold_svg.json').then((response) => response.json());
     const font2Promise = fetch('./fonts/SpineSans_Double_svg.json').then((response) => response.json());
@@ -362,7 +363,7 @@ function redrawGalleryCanvas(canvasObj) {
     let colsAdvanced = 0;
 
     canvasObj.words.forEach((word, index) => {
-        const xPos = 20 + (colsAdvanced * advanceWidth + index) * canvasObj.params.fontSize;
+        const xPos = 20 + (colsAdvanced * advanceWidth) * canvasObj.params.fontSize + index * 14;
         const yPos = 3 * canvasObj.params.fontSize;
         const assembledParams = assembleWordParams(canvasObj, index, Object.keys(mainCanvasObj.params));
 
@@ -570,7 +571,7 @@ function getFocusedWordIndex(canvasObj, mouseX) {
     // for now, manually match redrawSettingsCanvas
     const fontSize = canvasObj.params.fontSize;
     const leftEdge = 20;
-    const wordsGap = fontSize;
+    const wordsGap = 14;
 
     const styleMetrics = fontMetrics["bold"];
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;

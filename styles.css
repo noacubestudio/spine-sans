@@ -17,14 +17,12 @@ body {
 }
 
 .container {
-    display: flex;
-    flex-grow: 1;
+    margin-right: 400px;
 }
 
 .main {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    width: 100%;
+    float: left;
     background-color: #000;
 }
 
@@ -42,13 +40,16 @@ body {
 }
 
 #mainCanvas {
-    flex-grow: 1;
+    /* flex-grow: 1; */
 }
 
 .sidebar {
+    float: right;
+    width: 400px;
+    margin-right: -400px;
+
     background-color: rgba(255, 255, 255, 0.1);
     color: #a3a3a3;
-    width: 400px;
 }
 
 .setting {
@@ -61,7 +62,7 @@ canvas.gallery {
 }
 
 canvas.slider {
-    padding: 20px;
+    margin: 20px;
     cursor: pointer;
 }
 
