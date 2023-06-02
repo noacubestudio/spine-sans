@@ -11,6 +11,11 @@ body {
     font-display: swap;
 }
 
+::selection {
+    background-color: #FFAE63;
+    color: black;
+}
+
 .container {
     display: flex;
     flex-grow: 1;

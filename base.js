@@ -87,6 +87,7 @@ function jsonFontsLoaded() {
     mainCanvasObj.el.addEventListener('click', () => {
         if (document.activeElement !== textInputEl) {
             textInputEl.focus();
+            textInputEl.select();
         }
     });
 
