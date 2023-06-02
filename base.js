@@ -162,7 +162,7 @@ function redrawMainCanvas() {
             colsAdvanced = 0;
             linesAdvanced++;
         }
-        const xPos = 30 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
+        const xPos = 40 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
         const yPos = 50 + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
         drawWord(mainCanvasObj.ctx, xPos, yPos, word, mainCanvasObj.params);
         colsAdvanced += (word.totalCols + 1);

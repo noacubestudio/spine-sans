@@ -9,22 +9,27 @@
     </head>
     <body>
         <script type="module" src="base.js"></script>
-        <div class="container">
-            <div class="main">
-                <div class="topToolbar">
-                    <input name="textInput" id="textInput" value="spine sans" placeholder="type words here!"></input>
+        <div class="scrollColumn">
+            <div class="container">
+                <div class="main">
+                    <div class="topToolbar">
+                        <input name="textInput" id="textInput" value="spine sans" placeholder="type words here!"></input>
+                    </div>
+                    <canvas id="mainCanvas" height="1000px"></canvas>
                 </div>
-                <canvas id="mainCanvas" height="1000px"></canvas>
+                <div class="sidebar">
+                    <div class="setting">style</div>
+                    <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
+                    <div class="setting">size</div>
+                    <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
+                    <div class="setting">height</div>
+                    <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
+                    <div class="setting">effect</div>
+                    <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
+                </div>
             </div>
-            <div class="sidebar">
-                <div class="setting">style</div>
-                <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
-                <div class="setting">size</div>
-                <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
-                <div class="setting">height</div>
-                <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
-                <div class="setting">effect</div>
-                <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
+            <div class="site" id="about">
+                work in progress.
             </div>
         </div>
     </body>

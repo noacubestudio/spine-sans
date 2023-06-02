@@ -16,6 +16,11 @@ body {
     color: black;
 }
 
+.scrollColumn {
+    display: flex;
+    flex-direction: column;
+}
+
 .container {
     margin-right: 400px;
 }
@@ -23,7 +28,6 @@ body {
 .main {
     width: 100%;
     float: left;
-    background-color: #000;
 }
 
 .topToolbar {
@@ -34,21 +38,21 @@ body {
     background-color: transparent;
     color: white;
     border: none;
-    padding-inline: 30px;
+    padding-inline: 40px;
     height: 100%;
     width: 100%;
 }
 
-#mainCanvas {
+/* #mainCanvas { */
     /* flex-grow: 1; */
-}
+/* } */
 
 .sidebar {
     float: right;
     width: 400px;
     margin-right: -400px;
 
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #191919;
     color: #a3a3a3;
 }
 
@@ -66,3 +70,7 @@ canvas.slider {
     cursor: pointer;
 }
 
+.site {
+    color: #a3a3a3;
+    margin-left: 40px;
+}
