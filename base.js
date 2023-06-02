@@ -6,7 +6,7 @@ const loadedFonts = {
 
 // font details
 const fontMetrics = {
-    bold: {
+    bold: { // this one is assumed to be always used for font spacing calculations, since they end up with the same effect
         halfHeight: 3.5,
         colMultiplier: 1,
         colWidth: 3,
@@ -20,37 +20,47 @@ const fontMetrics = {
     }
 }
 
-// later, different buffers will have their own parameters?
-// but those are set...
-// also, I need to have an a/b set to lerp between? or at least swap out with animation
-const parameters = {
-    topFont: "bold",
-    bottomFont: "double",
-    colHeight: 16,
-    fontSize: 12
+// canvases
+function collectCanvases(querySelector) {
+    const canvasData = {};
+  
+    const canvases = document.querySelectorAll(querySelector);
+    canvases.forEach(canvas => {
+        const id = canvas.getAttribute('id');
+        if (id) {
+            const ctx = canvas.getContext('2d');
+            canvasData[id] = { el: canvas, ctx: ctx };
+        }
+    });
+  
+    return canvasData;
+}
+const galleryCanvasObjsDir = collectCanvases('canvas.gallery');
+const sliderCanvasObjsDir = collectCanvases('canvas.slider');
+
+// main canvas and parameters
+const mainCanvasObj = {
+    el: document.getElementById("mainCanvas"), 
+    ctx: document.getElementById("mainCanvas").getContext('2d', {alpha: false}),
+    params: {
+        topFont: "bold",
+        bottomFont: "double",
+        colHeight: 16,
+        fontSize: 12,
+        colEffect: "bend"
+    },
+    words: []
 }
 
-
-// DOM elements
-let mainCanvasEl; let ctx; 
-let textInputEl;
-
-// current text to display, also contains column counts
-// computed from the actual string
-let words = [];
-
-
-function updateCanvasSize() {
+function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
-    mainCanvasEl.width = newWidth;
-    mainCanvasEl.style.width = newWidth + 'px';
+    mainCanvasObj.el.width = newWidth;
+    mainCanvasObj.el.style.width = newWidth + 'px';
 }
+window.addEventListener('DOMContentLoaded', updateMainCanvasSize);
 
-mainCanvasEl = document.getElementById('mainCanvas');
-window.addEventListener('DOMContentLoaded', updateCanvasSize);
-
-textInputEl = document.getElementById("textInput");
-
+// text
+let textInputEl = document.getElementById("textInput");
 
 window.setup = () => {
     // load jsons 
@@ -73,87 +83,93 @@ function jsonFontsLoaded() {
     //buffer3d = createGraphics(1360, 800, WEBGL);
 
     // gui
-    mainCanvasEl.addEventListener('click', () => {
+    // canvas events
+    mainCanvasObj.el.addEventListener('click', () => {
         if (document.activeElement !== textInputEl) {
             textInputEl.focus();
         }
     });
+
+    // gallery canvases
+    for (key in galleryCanvasObjsDir) {
+        const canvasEl = galleryCanvasObjsDir[key].el;
+        canvasEl.addEventListener('click', (e) => galleryHandleClick(e));
+        canvasEl.addEventListener('mousemove', (e) => galleryHandleMouseMove(e));
+        canvasEl.addEventListener('mouseleave', (e) => galleryHandleMouseLeave(e));
+    }
+    // slider canvases
+    for (key in sliderCanvasObjsDir) {
+        const sliderEl = sliderCanvasObjsDir[key].el;
+        sliderEl.addEventListener("mousedown", (e) => sliderHandleMouseDown(e));
+        sliderEl.addEventListener("mouseup", (e) => sliderHandleMouseUp(e));
+        sliderEl.addEventListener("mousemove", (e) => sliderHandleMouseMove(e));
+        sliderEl.addEventListener("mouseleave", (e) => sliderHandleMouseLeave(e));
+    }
+
     textInputEl.addEventListener("input", () => {
-        updateWordsArray(textInputEl.value);
-        redraw();
+        mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
+        redrawMainCanvas();
     });
       
-    window.addEventListener('resize', () => {updateCanvasSize(); redraw()});
+    window.addEventListener('resize', () => {updateMainCanvasSize(); redrawMainCanvas()});
 
-    // draw
-    ctx = mainCanvasEl.getContext('2d');
+    mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
+    redrawMainCanvas();
+    console.log("mainCanvas", mainCanvasObj);
 
-    updateWordsArray(textInputEl.value);
-    redraw();
-}
-
-function updateWordsArray(inputString) {
-    function countColumnsOfChar(char) {
-        return "wm".includes(char) ? 3
-            : "ijltfr".includes(char) ? 1
-            : 2; // Default value if not found in single or triple column sets
-    }
-    
-    function arrFromWordString(text) {
-        return [...text].map((c) => {
-            return {
-                char: c, 
-                columns: countColumnsOfChar(c)
-            } 
-        });
-    }
-
-    const splitWords = inputString.toLowerCase().split(/[^a-z]/i);
-    words = [];
-    splitWords.forEach((wordString) => {
-        if (wordString.length > 0) {
-            const charsArr = arrFromWordString(wordString);
-            const totalCols = charsArr.reduce((total, obj) => total + obj.columns, 0);
-            words.push({chars: charsArr, totalCols})
+    // initial draw of gallery canvases
+    for (key in galleryCanvasObjsDir) {
+        // first check size
+        const canvasObj = galleryCanvasObjsDir[key];
+        const desiredHeight = canvasObj.params.fontSize * (fontMetrics["bold"].halfHeight*2 + canvasObj.params.colHeight + 6)
+        if (canvasObj.el.height !== desiredHeight) {
+            canvasObj.el.height = desiredHeight;
         }
-    });
+        redrawGalleryCanvas(galleryCanvasObjsDir[key]);
+        console.log(key, galleryCanvasObjsDir[key]);
+    }
+
+    // initial draw of slider canvases
+    for (key in sliderCanvasObjsDir) {
+        const sliderObj = sliderCanvasObjsDir[key];
+        updateSliderFromMainParam(sliderObj);
+        redrawSliderCanvas(sliderObj);
+        console.log(key, sliderObj);
+    }
 }
 
-function redraw() {
+function redrawMainCanvas() {
     // background
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, mainCanvasEl.width, mainCanvasEl.height);
+    mainCanvasObj.ctx.fillStyle = "#000000";
+    mainCanvasObj.ctx.fillRect(0, 0, mainCanvasObj.el.width, mainCanvasObj.el.height);
 
     // draw text and columns
-    ctx.fillStyle = '#ffffffff';
+    mainCanvasObj.ctx.fillStyle = '#ffffffff';
     
-    const styleMetrics = fontMetrics[parameters.topFont];
+    
+    const styleMetrics = fontMetrics[mainCanvasObj.params.topFont];
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
-    const advanceHeight = styleMetrics.halfHeight * 2 + parameters.colHeight + 3;
+    const advanceHeight = styleMetrics.halfHeight * 2 + mainCanvasObj.params.colHeight + 3;
 
     const maxColsInLine = 26;
     let colsAdvanced = 0;
     let linesAdvanced = 0;
 
-    words.forEach((word) => {
+    mainCanvasObj.words.forEach((word) => {
         if (colsAdvanced + word.totalCols > maxColsInLine && word.totalCols <= maxColsInLine) {
             colsAdvanced = 0;
             linesAdvanced++;
         }
-        const xPos = 30 + colsAdvanced * advanceWidth * parameters.fontSize;
-        const yPos = 50 + linesAdvanced * advanceHeight * parameters.fontSize;
-        drawWord(xPos, yPos, word, parameters);
+        const xPos = 30 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
+        const yPos = 50 + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
+        drawWord(mainCanvasObj.ctx, xPos, yPos, word, mainCanvasObj.params);
         colsAdvanced += (word.totalCols + 1);
     });
     
-
-    // buffer test drawing
-    // buffer3d.fill(0);
-    // buffer3d.box(100);
-    // ctx.drawImage(buffer3d.canvas, 0, 0, 1360, 800);
+    //console.log("mainCanvas", mainCanvasObj);
 }
 
-function drawWord(x, y, wordObj, parameters) {
+function drawWord(ctx, x, y, wordObj, parameters) {
     ctx.save();
     ctx.translate(x, y);
     
@@ -165,7 +181,7 @@ function drawWord(x, y, wordObj, parameters) {
     ctx.save();
     wordObj.chars.forEach((charObj) => {
         // draw
-        drawGlyphHalves(charObj.char, parameters);
+        drawGlyphHalves(ctx, charObj.char, parameters);
 
         // advance to next character
         const styleMetrics = fontMetrics[parameters.topFont];
@@ -177,12 +193,12 @@ function drawWord(x, y, wordObj, parameters) {
     // draw the columns
     // WIP...
     ctx.translate(0, fontMetrics[parameters.topFont].halfHeight);
-    drawColumns(wordObj.chars, wordObj.totalCols, parameters);
+    drawColumns(ctx, wordObj.chars, wordObj.totalCols, parameters);
     
     ctx.restore();
 }
 
-function drawGlyphHalves(char, parameters) {
+function drawGlyphHalves(ctx, char, parameters) {
     const colHeight = parameters.colHeight;
 
     // get the svg data
@@ -215,8 +231,9 @@ function drawGlyphHalves(char, parameters) {
     ctx.restore();
 }
 
-function drawColumns(charObjArray, totalCols, parameters) {
+function drawColumns(ctx, charObjArray, totalCols, parameters) {
     if (parameters.colHeight === undefined || parameters.colHeight === 0) return;
+    if (parameters.colEffect === "none") return;
     if (charObjArray.length === 0) return;
 
     //default
@@ -248,7 +265,7 @@ function drawColumns(charObjArray, totalCols, parameters) {
     const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
-        curvedRect(topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
+        curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
     }
 
 
@@ -256,7 +273,7 @@ function drawColumns(charObjArray, totalCols, parameters) {
     ctx.restore();
 }
 
-function curvedRect(xTop, xBottom, y, widthTop, widthBottom, height) {
+function curvedRect(ctx, xTop, xBottom, y, widthTop, widthBottom, height) {
     ctx.beginPath();
 
     // Top side
@@ -281,4 +298,289 @@ function curvedRect(xTop, xBottom, y, widthTop, widthBottom, height) {
     );
 
     ctx.fill();
+}
+
+function setWordsArrFromString(inputString) {
+    const splitWords = inputString.toLowerCase().split(/[^a-z]/i);
+    const words = [];
+    splitWords.forEach((wordString) => {
+        if (wordString.length > 0) {
+            const charsArr = arrFromWordString(wordString);
+            const totalCols = charsArr.reduce((total, obj) => total + obj.columns, 0);
+            words.push({chars: charsArr, totalCols})
+        }
+    });
+    return words;
+}
+
+function setWordsArrWithParams(inputArr) {
+    const words = [];
+    inputArr.forEach((inputObj) => {
+        const charsArr = arrFromWordString(inputObj.string);
+        const totalCols = charsArr.reduce((total, obj) => total + obj.columns, 0);
+        words.push({chars: charsArr, totalCols, params: inputObj.params});
+    })
+    return words;
+}
+
+
+galleryCanvasObjsDir["baseFontCanvas"].params = {
+    colHeight: 1,
+    fontSize: 5,
+    colEffect: "none"
+};
+galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
+    {string: "ab", params: {topFont: "bold", bottomFont: "bold"}},
+    {string: "ab", params: {topFont: "double", bottomFont: "double"}},
+    {string: "ab", params: {topFont: "double", bottomFont: "bold"}},
+    {string: "ab", params: {topFont: "bold", bottomFont: "double"}},
+]);
+galleryCanvasObjsDir["effectCanvas"].params = {
+    colHeight: 4,
+    fontSize: 5,
+};
+galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
+    {string: "ab", params: {colEffect: "none"}},
+    {string: "ab", params: {colEffect: "bend"}},
+]);
+sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
+sliderCanvasObjsDir["sizeSlider"].paramName = "fontSize";
+sliderCanvasObjsDir["heightSlider"].range = {min: 0, max: 24};
+sliderCanvasObjsDir["heightSlider"].paramName = "colHeight";
+
+function redrawGalleryCanvas(canvasObj) {
+    // background
+    //canvasObj.ctx.fillStyle = "#000000";
+    canvasObj.ctx.clearRect(0, 0, canvasObj.el.width, canvasObj.el.height);
+    
+    // assuming the advance width is the same regardless of specific style
+    // draw in a row for now
+    const styleMetrics = fontMetrics["bold"];
+    const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
+
+    let colsAdvanced = 0;
+
+    canvasObj.words.forEach((word, index) => {
+        const xPos = 20 + (colsAdvanced * advanceWidth + index) * canvasObj.params.fontSize;
+        const yPos = 3 * canvasObj.params.fontSize;
+        const assembledParams = assembleWordParams(canvasObj, index, Object.keys(mainCanvasObj.params));
+
+        // check match
+        
+        word.paramsMatchMainCanvas = mainCanvasMatchesParams(word.params);
+        const wordFocused = (canvasObj.focusedWord === index);
+
+        if (word.paramsMatchMainCanvas && wordFocused) {
+            // already active
+            canvasObj.ctx.fillStyle = '#BBB';
+        } else if (wordFocused) {
+            // focused
+            canvasObj.ctx.fillStyle = '#444';
+        } else if (word.paramsMatchMainCanvas) {
+            // active
+            canvasObj.ctx.fillStyle = '#FFF';
+        } else {
+            // unfocused
+            canvasObj.ctx.fillStyle = '#888';
+        }
+        drawWord(canvasObj.ctx, xPos, yPos, word, assembledParams);
+        colsAdvanced += (word.totalCols);
+    });
+}
+
+function redrawSliderCanvas(sliderObj) {
+    sliderObj.ctx.fillStyle = (sliderObj.focused) ? '#444' : "#757575";
+    sliderObj.ctx.fillRect(0, 0, sliderObj.el.width, sliderObj.el.height);
+
+    // draw the handle
+    if (sliderObj.percentage !== undefined) {
+        sliderObj.ctx.fillStyle = (sliderObj.focused) ? '#BBB' : "#FFF";
+        sliderObj.ctx.fillRect(0, 0, sliderObj.percentage * sliderObj.el.width, sliderObj.el.height);
+    }
+}
+
+function updateSliderFromMainParam(sliderObj) {
+    const matchValue = mainCanvasObj.params[sliderObj.paramName];
+    sliderObj.percentage = map(matchValue, sliderObj.range.min, sliderObj.range.max, 0, 1);
+}
+
+function mainCanvasMatchesParams(params) {
+    for (let key in params) {
+            if (params.hasOwnProperty(key)) {
+                if (params[key] !== mainCanvasObj.params[key]) {
+                    return false;
+                }
+            }
+        }
+    return true;
+}
+
+function countColumnsOfChar(char) {
+    return "wm".includes(char) ? 3
+        : "ijltfr".includes(char) ? 1
+        : 2; // Default value if not found in single or triple column sets
+}
+
+function arrFromWordString(text) {
+    return [...text].map((c) => {
+        return {
+            char: c, 
+            columns: countColumnsOfChar(c)
+        } 
+    });
+}
+
+function getWordParam(canvasObj, wordIndex, key) {
+    // first look in the specific word
+    const wordLocalParam = canvasObj.words[wordIndex].params[key];
+    if (wordLocalParam !== undefined) {
+        return wordLocalParam;
+    } 
+    // try looking in the basic params for the canvas instead
+    const canvasParam = canvasObj.params[key];
+    if (canvasParam !== undefined) {
+        return canvasParam;
+    }
+    // otherwise, return the main canvas param and return a warning for now
+    const mainParam = mainCanvasObj.params[key];
+    if (mainParam !== undefined) {
+        //console.warn("parameter at " + key + " could only be found in the main canvas. Is this intentional?");
+        return mainParam;
+    } else {
+        console.error("parameter with " + key + " not found");
+    }
+}
+
+function assembleWordParams(canvasObj, wordIndex, keysArr) {
+    const assembledParams = {};
+    keysArr.forEach((key) => {
+        assembledParams[key] = getWordParam(canvasObj, wordIndex, key);
+    });
+    return assembledParams;
+}
+
+function setWordParamsToDestinationCanvas(wordsObj, wordIndex, destinationCanvas) {
+    // get all params from the word and apply those to the destination canvas params
+    function overwriteProperties(destObj, sourceObj) {
+        for (const key in sourceObj) {
+          if (destObj.hasOwnProperty(key)) {
+            destObj[key] = sourceObj[key];
+          } else {
+            console.warn("There is no key: " + key + " in the destination object");
+          }
+        }
+    }
+
+    overwriteProperties(destinationCanvas.params, wordsObj[wordIndex].params);
+}
+
+function galleryHandleClick(event) {
+    const canvasObj = galleryCanvasObjsDir[event.target.id];
+
+    // check focused word, isn't already active?
+    const focusedWordObj = canvasObj.words[canvasObj.focusedWord];
+    if (focusedWordObj.paramsMatchMainCanvas !== true) {
+        // then update those properties in the main canvas
+        setWordParamsToDestinationCanvas(canvasObj.words, canvasObj.focusedWord, mainCanvasObj);
+        redrawMainCanvas();
+        // also redraw the canvas you just clicked on
+        redrawGalleryCanvas(canvasObj);
+        // redraw any canvases that inherit from the main canvas the properties that have just been changed
+        redrawCanvasesThatInherit(focusedWordObj.params);
+    }
+}
+
+function redrawCanvasesThatInherit(paramsToCheck) {
+    // if a settings canvas doesn't specify a parameter and neither does an example word (just checking the first)
+    // that means that parameter is inherited from mainCanvas, so it needs to be redrawn
+
+    Object.entries(galleryCanvasObjsDir).forEach(([canvasKey, value]) => {
+        const containsChangedParam = Object.keys(paramsToCheck).some(key => value.params.hasOwnProperty(key) || value.words[0].params.hasOwnProperty(key));
+        //print(Object.keys(paramsToCheck), value.params, containsChangedParam)
+        if (!containsChangedParam) redrawGalleryCanvas(value);
+    });
+}
+
+function galleryHandleMouseMove(event) {
+    const canvasObj = galleryCanvasObjsDir[event.target.id];
+
+    const rect = canvasObj.el.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    //const mouseY = event.clientY - rect.top;
+    canvasObj.focusedWord = getFocusedWordIndex(canvasObj, mouseX);
+    redrawGalleryCanvas(canvasObj);
+}
+
+function galleryHandleMouseLeave(event) {
+    const canvasObj = galleryCanvasObjsDir[event.target.id];
+
+    canvasObj.focusedWord = undefined;
+    redrawGalleryCanvas(canvasObj);
+}
+
+function setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj) {
+    const newValue = lerp(sliderObj.range.min, sliderObj.range.max, sliderObj.percentage);
+    mainCanvasObj.params[sliderObj.paramName] = newValue;
+}
+
+function sliderHandleMouseDown(event) {
+    const sliderObj = sliderCanvasObjsDir[event.target.id];
+    sliderObj.dragging = true;
+    
+    const rect = sliderObj.el.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const percentage = (mouseX / rect.width);
+    const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
+    sliderObj.percentage = clampedPercentage;
+    setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
+    redrawMainCanvas();
+    redrawSliderCanvas(sliderObj);
+}
+function sliderHandleMouseUp(event) {
+    const sliderObj = sliderCanvasObjsDir[event.target.id];
+    sliderObj.dragging = false;
+}
+
+function sliderHandleMouseMove(event) {
+    const sliderObj = sliderCanvasObjsDir[event.target.id];
+    sliderObj.focused = true;
+
+    if (sliderObj.dragging) {
+        const rect = sliderObj.el.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const percentage = (mouseX / rect.width);
+        const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
+        sliderObj.percentage = clampedPercentage;
+        setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
+        redrawMainCanvas();
+    }
+    redrawSliderCanvas(sliderObj);
+}
+
+function sliderHandleMouseLeave(event) {
+    const sliderObj = sliderCanvasObjsDir[event.target.id];
+
+    sliderObj.focused = false;
+    sliderObj.dragging = false;
+    redrawSliderCanvas(sliderObj);
+}
+
+function getFocusedWordIndex(canvasObj, mouseX) {
+    // for now, manually match redrawSettingsCanvas
+    const fontSize = canvasObj.params.fontSize;
+    const leftEdge = 20;
+    const wordsGap = fontSize;
+
+    const styleMetrics = fontMetrics["bold"];
+    const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
+
+
+    // check if it's under the right edge of word. if not, keep going to check edge of next word
+
+    let currentRightEdge = leftEdge;
+    for (let focusedIndex = 0; focusedIndex < canvasObj.words.length; focusedIndex++) {
+        currentRightEdge += canvasObj.words[focusedIndex].totalCols * advanceWidth * fontSize + wordsGap;
+        if (mouseX < currentRightEdge) return focusedIndex;
+    }
+    return canvasObj.words.length-1;
 }
