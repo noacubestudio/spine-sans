@@ -61,7 +61,8 @@ const mainCanvasObj = {
         effectContext: "2d",
         colEffect: "bend",
         colBottomOffset: 1,
-        applyEffectPer: "letter"
+        applyEffectPer: "letter",
+        isFlipped: "odd"
     },
     words: []
 }
@@ -253,9 +254,9 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
 
         if (parameters.applyEffectPer === "letter") {
             // per letter, split first
-            wordObj.chars.forEach((charObj) => {
+            wordObj.chars.forEach((charObj, index) => {
                 // draw
-                drawColumns(ctx, charObj.columns, parameters);
+                drawColumns(ctx, charObj.columns, parameters, index);
                 // advance to next character
                 ctx.translate(charObj.columns * advanceWidth, 0);
             });
@@ -301,9 +302,11 @@ function drawGlyphHalves(ctx, char, parameters) {
     ctx.restore();
 }
 
-function drawColumns(ctx, totalCols, parameters) {
+function drawColumns(ctx, totalCols, parameters, index) {
     if (parameters.colHeight === undefined || parameters.colHeight === 0) return;
     if (parameters.colEffect === "none") return;
+
+    if (index === undefined) index = 0;
 
     // effect stuff
     const topTotalCols = totalCols * fontMetrics[parameters.topFont].colMultiplier;
@@ -332,8 +335,8 @@ function drawColumns(ctx, totalCols, parameters) {
     ctx.clip();
 
     // bend effect
-    const bendCols = parameters.colBottomOffset;
-
+    const flipNumber = (parameters.isFlipped === "odd") ? (index % 2 === 0 ? 1 : -1) : 1;
+    const bendCols = parameters.colBottomOffset * flipNumber;
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
         curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
