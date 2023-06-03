@@ -44,6 +44,7 @@ body {
 }
 .canvasStack {
     position: relative;
+    height: 1000px;
 }
 
 .canvasStack canvas{
@@ -75,7 +76,7 @@ canvas.gallery {
 }
 
 canvas.slider {
-    margin: 20px;
+    padding: 20px;
     cursor: pointer;
 }
 

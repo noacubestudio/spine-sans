@@ -469,7 +469,9 @@ function redrawSliderCanvas(sliderObj) {
     // draw the handle
     if (sliderObj.percentage !== undefined) {
         sliderObj.ctx.fillStyle = (sliderObj.focused) ? '#BBB' : "#FFF";
-        sliderObj.ctx.fillRect(0, 0, sliderObj.percentage * sliderObj.el.width, sliderObj.el.height);
+        const handleDiameter = sliderObj.el.height;
+        const handleLeft = lerp(0, sliderObj.el.width - handleDiameter, sliderObj.percentage);
+        sliderObj.ctx.fillRect(handleLeft, 0, handleDiameter, handleDiameter);
     }
 }
 
@@ -713,9 +715,7 @@ function sliderHandleMouseDown(event) {
     
     const rect = sliderObj.el.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
-    const percentage = (mouseX / rect.width);
-    const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
-    sliderObj.percentage = clampedPercentage;
+    sliderObj.percentage = map(mouseX, rect.height/2, rect.width-rect.height/2, 0, 1, true);
     setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
     updateMainCanvasesFromChange([sliderObj.paramName]);
     redrawSliderCanvas(sliderObj);
@@ -732,9 +732,7 @@ function sliderHandleMouseMove(event) {
     if (sliderObj.dragging) {
         const rect = sliderObj.el.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
-        const percentage = (mouseX / rect.width);
-        const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
-        sliderObj.percentage = clampedPercentage;
+        sliderObj.percentage = map(mouseX, rect.height/2, rect.width-rect.height/2, 0, 1, true);
         setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
         updateMainCanvasesFromChange([sliderObj.paramName]);
     }
