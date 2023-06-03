@@ -40,22 +40,37 @@ const sliderCanvasObjsDir = collectCanvases('canvas.slider');
 
 // main canvas and parameters
 const mainCanvasObj = {
-    el: document.getElementById("mainCanvas"), 
-    ctx: document.getElementById("mainCanvas").getContext('2d', {alpha: false}),
+    elStack: [
+        document.getElementById("mainCanvas"), 
+        document.getElementById("effectCanvas2d"), 
+        document.getElementById("effectCanvas3d")
+    ], 
+    ctxStack: [
+        document.getElementById("mainCanvas").getContext('2d', {alpha: false}),
+        document.getElementById("effectCanvas2d").getContext('2d'),
+        document.getElementById("effectCanvas3d").getContext('webgl'),
+    ],
     params: {
+        // the redraw conditions for these from sidebar changes are in
+        // updateMainCanvasesFromChange(), make sure its up to date
+
         topFont: "bold",
         bottomFont: "double",
         colHeight: 16,
         fontSize: 12,
-        colEffect: "bend"
+        effectContext: "2d",
+        colEffect: "bend",
+        colBottomOffset: 0
     },
     words: []
 }
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
-    mainCanvasObj.el.width = newWidth;
-    mainCanvasObj.el.style.width = newWidth + 'px';
+    mainCanvasObj.elStack.forEach((el) => {
+        el.width = newWidth;
+        el.style.width = newWidth + 'px';
+    });
 }
 window.addEventListener('DOMContentLoaded', updateMainCanvasSize);
 
@@ -85,7 +100,7 @@ function jsonFontsLoaded() {
 
     // gui
     // canvas events
-    mainCanvasObj.el.addEventListener('click', () => {
+    mainCanvasObj.elStack[0].addEventListener('click', () => {
         if (document.activeElement !== textInputEl) {
             textInputEl.focus();
             textInputEl.select();
@@ -110,13 +125,23 @@ function jsonFontsLoaded() {
 
     textInputEl.addEventListener("input", () => {
         mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
+        setMainCanvasWordPositions();
         redrawMainCanvas();
+        redrawCurrentEffectCanvas();
     });
       
-    window.addEventListener('resize', () => {updateMainCanvasSize(); redrawMainCanvas()});
+    window.addEventListener('resize', () => {
+        updateMainCanvasSize(); 
+        setMainCanvasWordPositions();
+        redrawMainCanvas()
+        redrawCurrentEffectCanvas();
+    });
 
     mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
+    setMainCanvasWordPositions();
     redrawMainCanvas();
+    updateEffectCanvasVisibility();
+    redrawCurrentEffectCanvas();
     console.log("mainCanvas", mainCanvasObj);
 
     // initial draw of gallery canvases
@@ -140,15 +165,10 @@ function jsonFontsLoaded() {
     }
 }
 
-function redrawMainCanvas() {
-    // background
-    mainCanvasObj.ctx.fillStyle = "#000000";
-    mainCanvasObj.ctx.fillRect(0, 0, mainCanvasObj.el.width, mainCanvasObj.el.height);
-
-    // draw text and columns
-    mainCanvasObj.ctx.fillStyle = '#ffffffff';
-    
-    
+// this currently runs before every redraw, but is really only needed if 
+// a) the input text changed
+// b) the font size, column height or canvas size changed 
+function setMainCanvasWordPositions() {
     const styleMetrics = fontMetrics[mainCanvasObj.params.topFont];
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
     const advanceHeight = styleMetrics.halfHeight * 2 + mainCanvasObj.params.colHeight + 3;
@@ -162,40 +182,71 @@ function redrawMainCanvas() {
             colsAdvanced = 0;
             linesAdvanced++;
         }
-        const xPos = 40 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
-        const yPos = 50 + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
-        drawWord(mainCanvasObj.ctx, xPos, yPos, word, mainCanvasObj.params);
+        word.xPos = 40 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
+        word.yPos = 50 + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
         colsAdvanced += (word.totalCols + 1);
+    });
+}
+
+function redrawMainCanvas() {
+    const mainCanvasCtx = mainCanvasObj.ctxStack[0];
+    // background
+    mainCanvasCtx.fillStyle = "#000000";
+    mainCanvasCtx.fillRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
+
+    // draw text without columns by giving drawWord a special keyword
+    mainCanvasCtx.fillStyle = '#ffffffff';
+    mainCanvasObj.words.forEach((word) => {
+        drawWord(mainCanvasCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "halvesOnly");
     });
     
     //console.log("mainCanvas", mainCanvasObj);
 }
 
-function drawWord(ctx, x, y, wordObj, parameters) {
+function redrawCurrentEffectCanvas() {
+    const effectCtx = (mainCanvasObj.params.effectContext === "2d") ? mainCanvasObj.ctxStack[1] : mainCanvasObj.ctxStack[2];
+
+    // clear background, same dimensions as main canvas
+    effectCtx.clearRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
+
+    // draw columns only by giving drawWord a special keyword
+    effectCtx.fillStyle = '#ffffffff';
+    mainCanvasObj.words.forEach((word) => {
+        drawWord(effectCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "columnsOnly");
+    });
+
+    // draw columns
+    console.log("redrawing effects canvas!", effectCtx);
+}
+
+function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
     ctx.save();
     ctx.translate(x, y);
     
-    const scale = parameters.fontSize || 30;
+    const scale = parameters.fontSize || 10;
     ctx.scale(scale, scale);
     ctx.lineWidth = 2/scale;
 
     // draw the halves
-    ctx.save();
-    wordObj.chars.forEach((charObj) => {
-        // draw
-        drawGlyphHalves(ctx, charObj.char, parameters);
-
-        // advance to next character
-        const styleMetrics = fontMetrics[parameters.topFont];
-        const advanceWidth = charObj.columns * (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
-        ctx.translate(advanceWidth, 0);
-    });
-    ctx.restore();
+    if (onlyDrawPartially !== "columnsOnly") {
+        ctx.save();
+        wordObj.chars.forEach((charObj) => {
+            // draw
+            drawGlyphHalves(ctx, charObj.char, parameters);
+    
+            // advance to next character
+            const styleMetrics = fontMetrics[parameters.topFont];
+            const advanceWidth = charObj.columns * (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
+            ctx.translate(advanceWidth, 0);
+        });
+        ctx.restore();
+    }
 
     // draw the columns
-    // WIP...
-    ctx.translate(0, fontMetrics[parameters.topFont].halfHeight);
-    drawColumns(ctx, wordObj.chars, wordObj.totalCols, parameters);
+    if (onlyDrawPartially !== "halvesOnly") {
+        ctx.translate(0, fontMetrics[parameters.topFont].halfHeight);
+        drawColumns(ctx, wordObj.chars, wordObj.totalCols, parameters);
+    }
     
     ctx.restore();
 }
@@ -461,7 +512,14 @@ function assembleWordParams(canvasObj, wordIndex, keysArr) {
     return assembledParams;
 }
 
+function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
 function setWordParamsToDestinationCanvas(wordsObj, wordIndex, destinationCanvas) {
+    // save previous values
+    destinationCanvas.lastParams = deepClone(destinationCanvas.params);
+
     // get all params from the word and apply those to the destination canvas params
     function overwriteProperties(destObj, sourceObj) {
         for (const key in sourceObj) {
@@ -482,17 +540,117 @@ function galleryHandleClick(event) {
     // check focused word, isn't already active?
     const focusedWordObj = canvasObj.words[canvasObj.focusedWord];
     if (focusedWordObj.paramsMatchMainCanvas !== true) {
-        // then update those properties in the main canvas
+        // then update those properties in the main canvas obj
         setWordParamsToDestinationCanvas(canvasObj.words, canvasObj.focusedWord, mainCanvasObj);
-        redrawMainCanvas();
+        // see which main canvases need to change and what else needs to be recalculated
+        updateMainCanvasesFromChange(Object.keys(focusedWordObj.params));
         // also redraw the canvas you just clicked on
         redrawGalleryCanvas(canvasObj);
         // redraw any canvases that inherit from the main canvas the properties that have just been changed
-        redrawCanvasesThatInherit(focusedWordObj.params);
+        redrawGalleriesThatInherit(focusedWordObj.params);
     }
 }
 
-function redrawCanvasesThatInherit(paramsToCheck) {
+function updateMainCanvasesFromChange(usedKeysArr) {
+    let wordsMaybeMoved = false;
+    let lettersMaybeChanged = false;
+    let effectsVisibilityChanged = false;
+    usedKeysArr.forEach((key) => {
+        if (["fontSize", "colHeight"].includes(key)) wordsMaybeMoved = true;
+        if (["topFont", "bottomFont"].includes(key)) lettersMaybeChanged = true;
+        if (["effectContext"].includes(key)) effectsVisibilityChanged = true;
+    });
+    console.log(`wordPos ${wordsMaybeMoved}, lettersChanged ${lettersMaybeChanged}, effectsChanged ${effectsVisibilityChanged}`);
+    
+    if (wordsMaybeMoved) {
+        setMainCanvasWordPositions();
+    }
+    // redraw the letters
+    if (wordsMaybeMoved || lettersMaybeChanged) {
+        redrawMainCanvas();
+    }
+    // visibility of effect canvas might have been switched
+    if (effectsVisibilityChanged) {
+        updateEffectCanvasVisibility();
+    }
+    // only effects changed, so maybe launch animation mode
+    if (!wordsMaybeMoved && !lettersMaybeChanged) {
+        const animationParams = getAnimationParamsFromDiff(mainCanvasObj.params, mainCanvasObj.lastParams);
+        print("animation changes", animationParams);
+        if (Object.keys(animationParams).length > 0) {
+            animateMainCanvas(animationParams, 1000);
+        } else {
+            redrawCurrentEffectCanvas();
+        }
+    } else {
+        redrawCurrentEffectCanvas();
+    }
+}
+
+function renderMainCanvasFrame(progress) {
+    if (progress === 0 || progress === 1) console.log(progress === 0 ? "main anim started!" : "main anim stopped!");
+
+    // assume that this only involves effect changes
+    redrawCurrentEffectCanvas();
+}
+
+function getAnimationParamsFromDiff(current, last) {
+    if (last === undefined) return {};
+
+    const animationObject = {};
+
+    // Collect numerical parameters and store their "before" and "after" values
+    for (const key in current) {
+        if (typeof current[key] === 'number' && typeof last[key] === 'number' && current[key] !== last[key]) {
+            animationObject[key] = {
+                before: last[key],
+                after: current[key]
+            };
+        }
+    }
+    return animationObject;
+}
+
+function animateMainCanvas(animationParams, duration) {
+
+    const currentParams = mainCanvasObj.params;
+    let startTime = null;
+
+    function animationStep(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+    
+        // Update the values based on the progress
+        for (const key in animationParams) {
+            const { before, after } = animationParams[key];
+            currentParams[key] = lerp(before, after, progress);
+        }
+    
+        // Render the updated values
+        renderMainCanvasFrame(progress);
+    
+        if (progress < 1) {
+            // Continue the animation until the duration is reached
+            requestAnimationFrame(animationStep);
+        } 
+    }
+    
+    // Start the animation
+    requestAnimationFrame(animationStep);
+}
+
+function updateEffectCanvasVisibility() {
+    if (mainCanvasObj.params.effectContext === "2d") {
+        mainCanvasObj.elStack[1].style.display = "block";
+        mainCanvasObj.elStack[2].style.display = "none";
+    } else {
+        mainCanvasObj.elStack[1].style.display = "none";
+        mainCanvasObj.elStack[2].style.display = "block";
+    }
+}
+
+function redrawGalleriesThatInherit(paramsToCheck) {
     // if a settings canvas doesn't specify a parameter and neither does an example word (just checking the first)
     // that means that parameter is inherited from mainCanvas, so it needs to be redrawn
 
@@ -521,6 +679,9 @@ function galleryHandleMouseLeave(event) {
 }
 
 function setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj) {
+    // save previous values
+    mainCanvasObj.lastParams = deepClone(mainCanvasObj.params);
+
     const newValue = lerp(sliderObj.range.min, sliderObj.range.max, sliderObj.percentage);
     mainCanvasObj.params[sliderObj.paramName] = newValue;
 }
@@ -535,7 +696,7 @@ function sliderHandleMouseDown(event) {
     const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
     sliderObj.percentage = clampedPercentage;
     setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
-    redrawMainCanvas();
+    updateMainCanvasesFromChange([sliderObj.paramName]);
     redrawSliderCanvas(sliderObj);
 }
 function sliderHandleMouseUp(event) {
@@ -554,7 +715,7 @@ function sliderHandleMouseMove(event) {
         const clampedPercentage = Math.min(Math.max(percentage, 0), 1);
         sliderObj.percentage = clampedPercentage;
         setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj);
-        redrawMainCanvas();
+        updateMainCanvasesFromChange([sliderObj.paramName]);
     }
     redrawSliderCanvas(sliderObj);
 }
