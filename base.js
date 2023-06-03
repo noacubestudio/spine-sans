@@ -60,7 +60,8 @@ const mainCanvasObj = {
         fontSize: 12,
         effectContext: "2d",
         colEffect: "bend",
-        colBottomOffset: 0
+        colBottomOffset: 1,
+        applyEffectPer: "letter"
     },
     words: []
 }
@@ -220,6 +221,8 @@ function redrawCurrentEffectCanvas() {
 }
 
 function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
+    if (wordObj.chars.length === 0) return;
+
     ctx.save();
     ctx.translate(x, y);
     
@@ -227,17 +230,19 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
     ctx.scale(scale, scale);
     ctx.lineWidth = 2/scale;
 
+    // calculate with bold as default, used to go to next letter
+    const styleMetrics = fontMetrics["bold"];
+    const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
+
+
     // draw the halves
     if (onlyDrawPartially !== "columnsOnly") {
         ctx.save();
         wordObj.chars.forEach((charObj) => {
             // draw
             drawGlyphHalves(ctx, charObj.char, parameters);
-    
             // advance to next character
-            const styleMetrics = fontMetrics[parameters.topFont];
-            const advanceWidth = charObj.columns * (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
-            ctx.translate(advanceWidth, 0);
+            ctx.translate(charObj.columns * advanceWidth, 0);
         });
         ctx.restore();
     }
@@ -245,7 +250,19 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
     // draw the columns
     if (onlyDrawPartially !== "halvesOnly") {
         ctx.translate(0, fontMetrics[parameters.topFont].halfHeight);
-        drawColumns(ctx, wordObj.chars, wordObj.totalCols, parameters);
+
+        if (parameters.applyEffectPer === "letter") {
+            // per letter, split first
+            wordObj.chars.forEach((charObj) => {
+                // draw
+                drawColumns(ctx, charObj.columns, parameters);
+                // advance to next character
+                ctx.translate(charObj.columns * advanceWidth, 0);
+            });
+        } else {
+            // per word
+            drawColumns(ctx, wordObj.totalCols, parameters);
+        }
     }
     
     ctx.restore();
@@ -284,38 +301,39 @@ function drawGlyphHalves(ctx, char, parameters) {
     ctx.restore();
 }
 
-function drawColumns(ctx, charObjArray, totalCols, parameters) {
+function drawColumns(ctx, totalCols, parameters) {
     if (parameters.colHeight === undefined || parameters.colHeight === 0) return;
     if (parameters.colEffect === "none") return;
-    if (charObjArray.length === 0) return;
 
-    //default
-    const colWidth = fontMetrics["bold"].colWidth;
-    const advanceWidth = colWidth + fontMetrics["bold"].colGap;
-
-    // clipping rectangle
-    ctx.beginPath();
-    ctx.rect(0, 0, advanceWidth * (totalCols-1) + colWidth, parameters.colHeight);
-    ctx.save();
-    ctx.clip();
-
-    
     // effect stuff
     const topTotalCols = totalCols * fontMetrics[parameters.topFont].colMultiplier;
     const bottomTotalCols = totalCols * fontMetrics[parameters.bottomFont].colMultiplier;
     const maxTotalCols = Math.max(topTotalCols, bottomTotalCols);
 
-    // basic rectangles
-    // for (let col = 0; col < totalCols; col++) {
-    //     ctx.fillRect(col * (advanceWidth), 0, colWidth, parameters.colHeight);
-    // }
-
-    // bend effect
-    const bendCols = 0;
     const topWidth = fontMetrics[parameters.topFont].colWidth;
     const bottomWidth = fontMetrics[parameters.bottomFont].colWidth;
     const topAdvanceWidth = topWidth + fontMetrics[parameters.topFont].colGap;
     const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
+
+    // basic rectangles at top and bottom to slightly overshoot stuff
+    for (let col = 0; col < topTotalCols; col++) {
+        ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
+    }
+    for (let col = 0; col < bottomTotalCols; col++) {
+        ctx.fillRect(col * bottomAdvanceWidth, parameters.colHeight-0.1, fontMetrics[parameters.bottomFont].colWidth, 0.2);
+    }
+
+    // clipping rectangle
+    const defaultColWidth = fontMetrics["bold"].colWidth;
+    const defaultAdvanceWidth = defaultColWidth + fontMetrics["bold"].colGap;
+    ctx.beginPath();
+    ctx.rect(0, 0, defaultAdvanceWidth * (totalCols-1) + defaultColWidth, parameters.colHeight);
+    ctx.save();
+    ctx.clip();
+
+    // bend effect
+    const bendCols = parameters.colBottomOffset;
+
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
         curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
