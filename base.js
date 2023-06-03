@@ -308,7 +308,7 @@ function drawColumns(ctx, totalCols, parameters, index) {
 
     if (index === undefined) index = 0;
 
-    // effect stuff
+    // basic params
     const topTotalCols = totalCols * fontMetrics[parameters.topFont].colMultiplier;
     const bottomTotalCols = totalCols * fontMetrics[parameters.bottomFont].colMultiplier;
     const maxTotalCols = Math.max(topTotalCols, bottomTotalCols);
@@ -334,9 +334,12 @@ function drawColumns(ctx, totalCols, parameters, index) {
     ctx.save();
     ctx.clip();
 
+    // useful for effects
+    const matchingHalves = (parameters.topFont === parameters.bottomFont);
+
     // bend effect
     const flipNumber = (parameters.isFlipped === "odd") ? (index % 2 === 0 ? 1 : -1) : 1;
-    const bendCols = parameters.colBottomOffset * flipNumber;
+    const bendCols = (totalCols > 1 || !matchingHalves) ? parameters.colBottomOffset * flipNumber : 0;
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
         curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
