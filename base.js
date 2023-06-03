@@ -55,7 +55,7 @@ const mainCanvasObj = {
         // updateMainCanvasesFromChange(), make sure its up to date
 
         topFont: "bold",
-        bottomFont: "double",
+        bottomFont: "bold",
         colHeight: 16,
         fontSize: 12,
         effectContext: "2d",
@@ -102,7 +102,7 @@ function jsonFontsLoaded() {
 
     // gui
     // canvas events
-    mainCanvasObj.elStack[0].addEventListener('click', () => {
+    document.getElementById("mainCanvasStack").addEventListener('click', () => {
         if (document.activeElement !== textInputEl) {
             textInputEl.focus();
             textInputEl.select();
