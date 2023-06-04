@@ -6,6 +6,7 @@
         <link rel="stylesheet" href="reset.css">
         <link rel="stylesheet" href="styles.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js" integrity="sha512-zInFF17qBFVvvvFpIfeBzo7Tj7+rQxLeTJDmbxjBz5/zIr89YVbTNelNhdTT+/DCrxoVzBeUPVFJsczKbB7sew==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     </head>
     <body>
         <script type="module" src="base.js"></script>
@@ -23,14 +24,17 @@
                     
                 </div>
                 <div class="sidebar">
-                    <div class="setting">style</div>
+                    <div class="setting"><div class="settingLabel">style</div><div class="settingChoice">default</div></div>
                     <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
-                    <div class="setting">size</div>
+                    <div class="setting"><div class="settingLabel">size</div><div class="settingChoice">default</div></div>
                     <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
-                    <div class="setting">height</div>
+                    <div class="setting"><div class="settingLabel">height</div><div class="settingChoice">default</div></div>
                     <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
-                    <div class="setting">effect</div>
+                    <hr>
+                    <div class="setting"><div class="settingLabel">effect</div><div class="settingChoice">default</div></div>
                     <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
+                    <div class="setting"><div class="settingLabel">effect range</div><div class="settingChoice">default</div></div>
+                    <canvas id="rangeCanvas" class="gallery" height="55px" width="400px"></canvas>
                 </div>
             </div>
             <div class="site" id="about">

@@ -30,6 +30,10 @@ function collectCanvases(querySelector) {
         if (id) {
             const ctx = canvas.getContext('2d');
             canvasData[id] = { el: canvas, ctx: ctx };
+
+            // also get the label
+            const choiceLabel = canvas.previousElementSibling.querySelector('div.settingChoice');
+            if (choiceLabel) {canvasData[id].labelChoiceEl = choiceLabel;};
         }
     });
   
@@ -62,7 +66,10 @@ const mainCanvasObj = {
         colEffect: "bend",
         colBottomOffset: 1,
         applyEffectPer: "letter",
-        isFlipped: "odd"
+        isFlipped: "odd",
+        textHue: 150,
+        textChroma: 0.1,
+        textLuminance: 1.0
     },
     words: []
 }
@@ -150,7 +157,7 @@ function jsonFontsLoaded() {
     for (key in galleryCanvasObjsDir) {
         // first check size
         const canvasObj = galleryCanvasObjsDir[key];
-        const desiredHeight = canvasObj.params.fontSize * (fontMetrics["bold"].halfHeight*2 + canvasObj.params.colHeight + 6)
+        const desiredHeight = canvasObj.params.fontSize * (fontMetrics["bold"].halfHeight*2 + canvasObj.params.colHeight + 8)
         if (canvasObj.el.height !== desiredHeight) {
             canvasObj.el.height = desiredHeight;
         }
@@ -193,11 +200,11 @@ function setMainCanvasWordPositions() {
 function redrawMainCanvas() {
     const mainCanvasCtx = mainCanvasObj.ctxStack[0];
     // background
-    mainCanvasCtx.fillStyle = "#000000";
+    mainCanvasCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params, 0.0);
     mainCanvasCtx.fillRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
 
     // draw text without columns by giving drawWord a special keyword
-    mainCanvasCtx.fillStyle = '#ffffffff';
+    mainCanvasCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params);
     mainCanvasObj.words.forEach((word) => {
         drawWord(mainCanvasCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "halvesOnly");
     });
@@ -212,7 +219,7 @@ function redrawCurrentEffectCanvas() {
     effectCtx.clearRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
 
     // draw columns only by giving drawWord a special keyword
-    effectCtx.fillStyle = '#ffffffff';
+    effectCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params);
     mainCanvasObj.words.forEach((word) => {
         drawWord(effectCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "columnsOnly");
     });
@@ -308,7 +315,6 @@ function drawColumns(ctx, totalCols, parameters, index) {
 
     if (index === undefined) index = 0;
 
-    // basic params
     const topTotalCols = totalCols * fontMetrics[parameters.topFont].colMultiplier;
     const bottomTotalCols = totalCols * fontMetrics[parameters.bottomFont].colMultiplier;
     const maxTotalCols = Math.max(topTotalCols, bottomTotalCols);
@@ -335,34 +341,69 @@ function drawColumns(ctx, totalCols, parameters, index) {
     ctx.clip();
 
     // useful for effects
-    const matchingHalves = (parameters.topFont === parameters.bottomFont);
+    const isSingleFont = (parameters.topFont === parameters.bottomFont);
+    // is there room for a bend to show?
+    const isRoomForBend = (maxTotalCols > Math.abs(parameters.colBottomOffset));
 
-    // bend effect
+    // offset bend effect. matching halves only.
+    // scale bend effect. for different halves.
+    // contained bend effect. first and last are connected in the background with a gradient
+
     const flipNumber = (parameters.isFlipped === "odd") ? (index % 2 === 0 ? 1 : -1) : 1;
-    const bendCols = (maxTotalCols > 1 || !matchingHalves) ? parameters.colBottomOffset * flipNumber : 0;
+    const bendCols = (maxTotalCols > 1 || !isSingleFont) ? parameters.colBottomOffset * flipNumber : 0;
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
 
         // gradient test
         const botCol = topCol + bendCols;
         let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
-        gradient.addColorStop(0, "white");
-        gradient.addColorStop(1, "#222");
+        gradient.addColorStop(0, chromaColorFromParams(parameters));
+        gradient.addColorStop(1, chromaColorFromParams(parameters, 0.2));
         // bottom gets out of view
         if (botCol < 0 || botCol >= bottomTotalCols) {
             ctx.fillStyle = gradient;
         } else if (topCol < 0 || topCol >= topTotalCols) {
             // top gets out of view
             gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
-            gradient.addColorStop(0, "#222");
-            gradient.addColorStop(1, "white");
+            gradient.addColorStop(0, chromaColorFromParams(parameters, 0.2));
+            gradient.addColorStop(1, chromaColorFromParams(parameters));
             ctx.fillStyle = gradient;
         } else {
-            ctx.fillStyle = "white";
+            ctx.fillStyle = chromaColorFromParams(parameters);
         }
 
         curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
     }
+
+
+    // // 3d perspective effect
+    // // never flipped 
+    
+    // for (let topCol = 0; topCol < maxTotalCols; topCol++) {
+    //     const topX = topAdvanceWidth * topCol;
+    //     const bottomX = bottomAdvanceWidth * topCol;
+
+    //     let middleX = (topX + bottomX) / 2;
+    //     const middleWidth = (topWidth + bottomWidth) / 2;
+
+    //     // perspective
+    //     let referenceCol = (maxTotalCols-1) / 2;
+    //     let columnsOff = topCol - referenceCol;
+    //     let minimumColumnsOff = ((topCol < referenceCol) ? Math.max(topCol, bottomCol) : Math.min(topCol, bottomCol)) - referenceCol;
+    //     let depth = -noise(topCol)
+    //     print(topCol, columnsOff, depth)
+    //     middleX += columnsOff * depth * fontMetrics["bold"].colGap;
+
+    //     let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
+    //     gradient.addColorStop(0, "white");
+    //     gradient.addColorStop(0.5, `hsl(${0}, ${0}%, ${map(depth, 0, -1.5, 100, 0, true)}%, 1)`);
+    //     gradient.addColorStop(1, "white");
+    //     ctx.fillStyle = gradient;
+
+    //     curvedRect(ctx, topX, middleX, 0, topWidth, middleWidth, parameters.colHeight / 2)
+    //     curvedRect(ctx, middleX, bottomX, parameters.colHeight / 2, middleWidth, bottomWidth, parameters.colHeight / 2)
+    // }
+
 
 
     // end clipping
@@ -425,7 +466,8 @@ function setWordsArrWithParams(inputArr) {
     inputArr.forEach((inputObj) => {
         const charsArr = arrFromWordString(inputObj.string);
         const totalCols = charsArr.reduce((total, obj) => total + obj.columns, 0);
-        words.push({chars: charsArr, totalCols, params: inputObj.params});
+        const name = inputObj.galleryOptionName;
+        words.push({chars: charsArr, galleryOptionName: name, totalCols, params: inputObj.params});
     })
     return words;
 }
@@ -437,27 +479,34 @@ galleryCanvasObjsDir["baseFontCanvas"].params = {
     colEffect: "none"
 };
 galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
-    {string: "ab", params: {topFont: "bold", bottomFont: "bold"}},
-    {string: "ab", params: {topFont: "double", bottomFont: "double"}},
-    {string: "ab", params: {topFont: "double", bottomFont: "bold"}},
-    {string: "ab", params: {topFont: "bold", bottomFont: "double"}},
+    {string: "ab", galleryOptionName: "bold", params: {topFont: "bold", bottomFont: "bold"}},
+    {string: "ab", galleryOptionName: "double", params: {topFont: "double", bottomFont: "double"}},
+    {string: "ab", galleryOptionName: "double/bold", params: {topFont: "double", bottomFont: "bold"}},
+    {string: "ab", galleryOptionName: "bold/double", params: {topFont: "bold", bottomFont: "double"}},
 ]);
 galleryCanvasObjsDir["effectCanvas"].params = {
-    colHeight: 4,
+    colHeight: 10,
     fontSize: 5,
 };
 galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
-    {string: "ab", params: {colEffect: "none"}},
-    {string: "ab", params: {colEffect: "bend"}},
+    {string: "ab", galleryOptionName: "none", params: {colEffect: "none"}},
+    {string: "ab", galleryOptionName: "bend", params: {colEffect: "bend"}},
 ]);
 sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
 sliderCanvasObjsDir["sizeSlider"].paramName = "fontSize";
 sliderCanvasObjsDir["heightSlider"].range = {min: 0, max: 24};
 sliderCanvasObjsDir["heightSlider"].paramName = "colHeight";
+galleryCanvasObjsDir["rangeCanvas"].params = {
+    colHeight: 10,
+    fontSize: 5,
+};
+galleryCanvasObjsDir["rangeCanvas"].words = setWordsArrWithParams([
+    {string: "word", galleryOptionName: "per word", params: {applyEffectPer: "word"}},
+    {string: "letter", galleryOptionName: "per letter", params: {applyEffectPer: "letter"}},
+]);
 
 function redrawGalleryCanvas(canvasObj) {
     // background
-    //canvasObj.ctx.fillStyle = "#000000";
     canvasObj.ctx.clearRect(0, 0, canvasObj.el.width, canvasObj.el.height);
     
     // assuming the advance width is the same regardless of specific style
@@ -467,9 +516,11 @@ function redrawGalleryCanvas(canvasObj) {
 
     let colsAdvanced = 0;
 
+    canvasObj.labelChoiceEl.textContent = "";
+
     canvasObj.words.forEach((word, index) => {
         const xPos = 20 + (colsAdvanced * advanceWidth) * canvasObj.params.fontSize + index * 14;
-        const yPos = 3 * canvasObj.params.fontSize;
+        const yPos = 4 * canvasObj.params.fontSize;
         const assembledParams = assembleWordParams(canvasObj, index, Object.keys(mainCanvasObj.params));
 
         // check match
@@ -477,35 +528,44 @@ function redrawGalleryCanvas(canvasObj) {
         word.paramsMatchMainCanvas = mainCanvasMatchesParams(word.params);
         const wordFocused = (canvasObj.focusedWord === index);
 
+        // text
+        if (word.paramsMatchMainCanvas) {
+            canvasObj.labelChoiceEl.textContent += word.galleryOptionName;
+        }
+
         if (word.paramsMatchMainCanvas && wordFocused) {
             // already active
-            canvasObj.ctx.fillStyle = '#BBB';
+            assembledParams.textLuminance = 0.85;
         } else if (wordFocused) {
             // focused
-            canvasObj.ctx.fillStyle = '#444';
+            assembledParams.textLuminance = 0.7;
         } else if (word.paramsMatchMainCanvas) {
             // active
-            canvasObj.ctx.fillStyle = '#FFF';
+            assembledParams.textLuminance = 1.0;
         } else {
             // unfocused
-            canvasObj.ctx.fillStyle = '#888';
+            assembledParams.textLuminance = 0.6;
         }
+        canvasObj.ctx.fillStyle = chromaColorFromParams(assembledParams);
         drawWord(canvasObj.ctx, xPos, yPos, word, assembledParams);
         colsAdvanced += (word.totalCols);
     });
 }
 
 function redrawSliderCanvas(sliderObj) {
-    sliderObj.ctx.fillStyle = (sliderObj.focused) ? '#444' : "#757575";
+    
+    sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.6 : 0.5);
     sliderObj.ctx.fillRect(0, 0, sliderObj.el.width, sliderObj.el.height);
 
     // draw the handle
     if (sliderObj.percentage !== undefined) {
-        sliderObj.ctx.fillStyle = (sliderObj.focused) ? '#BBB' : "#FFF";
+        sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.98 : 1.0);
         const handleDiameter = sliderObj.el.height;
         const handleLeft = lerp(0, sliderObj.el.width - handleDiameter, sliderObj.percentage);
         sliderObj.ctx.fillRect(handleLeft, 0, handleDiameter, handleDiameter);
     }
+
+    sliderObj.labelChoiceEl.textContent = mainCanvasObj.params[sliderObj.paramName];
 }
 
 function updateSliderFromMainParam(sliderObj) {
@@ -798,4 +858,9 @@ function getFocusedWordIndex(canvasObj, mouseX) {
         if (mouseX < currentRightEdge) return focusedIndex;
     }
     return canvasObj.words.length-1;
+}
+
+function chromaColorFromParams(params, lightness) {
+    lightness ??= 1.0
+    return chroma.oklch(params.textLuminance * lightness, params.textChroma, params.textHue).css();
 }
