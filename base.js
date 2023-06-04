@@ -318,7 +318,7 @@ function drawColumns(ctx, totalCols, parameters, index) {
     const topAdvanceWidth = topWidth + fontMetrics[parameters.topFont].colGap;
     const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
 
-    // basic rectangles at top and bottom to slightly overshoot stuff
+    // shapes at top and bottom to slightly overshoot stuff
     for (let col = 0; col < topTotalCols; col++) {
         ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
     }
@@ -339,9 +339,28 @@ function drawColumns(ctx, totalCols, parameters, index) {
 
     // bend effect
     const flipNumber = (parameters.isFlipped === "odd") ? (index % 2 === 0 ? 1 : -1) : 1;
-    const bendCols = (totalCols > 1 || !matchingHalves) ? parameters.colBottomOffset * flipNumber : 0;
+    const bendCols = (maxTotalCols > 1 || !matchingHalves) ? parameters.colBottomOffset * flipNumber : 0;
 
     for (let topCol = min(-bendCols,0); topCol < maxTotalCols + max(-bendCols,0); topCol++) {
+
+        // gradient test
+        const botCol = topCol + bendCols;
+        let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
+        gradient.addColorStop(0, "white");
+        gradient.addColorStop(1, "#222");
+        // bottom gets out of view
+        if (botCol < 0 || botCol >= bottomTotalCols) {
+            ctx.fillStyle = gradient;
+        } else if (topCol < 0 || topCol >= topTotalCols) {
+            // top gets out of view
+            gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
+            gradient.addColorStop(0, "#222");
+            gradient.addColorStop(1, "white");
+            ctx.fillStyle = gradient;
+        } else {
+            ctx.fillStyle = "white";
+        }
+
         curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * (topCol + bendCols), 0, topWidth, bottomWidth, parameters.colHeight)
     }
 
@@ -373,6 +392,17 @@ function curvedRect(ctx, xTop, xBottom, y, widthTop, widthBottom, height) {
         xTop, y + height * 0.5,
         xTop, y
     );
+
+    ctx.fill();
+}
+
+function diamond(ctx, x, y, width, height) {
+    ctx.beginPath();
+
+    ctx.moveTo(x + width * 0.5, y);
+    ctx.lineTo(x + width, y + height * 0.5);
+    ctx.lineTo(x + width * 0.5, y + height);
+    ctx.lineTo(x, y + height * 0.5);
 
     ctx.fill();
 }
