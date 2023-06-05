@@ -62,11 +62,11 @@ const mainCanvasObj = {
         // updateMainCanvasesFromChange(), make sure its up to date
 
         topFont: "double",
-        bottomFont: "bold",
-        colHeight: 16,
+        bottomFont: "double",
+        colHeight: 12,
         fontSize: 12,
         effectContext: "2d",
-        colEffect: "bendCross",
+        colEffect: "default",
         colBottomOffset: 1,
         applyEffectPer: "letter",
         isFlipped: "odd",
@@ -208,8 +208,8 @@ function redrawMainCanvas() {
 
     // draw text without columns by giving drawWord a special keyword
     mainCanvasCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params);
-    mainCanvasObj.words.forEach((word) => {
-        drawWord(mainCanvasCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "halvesOnly");
+    mainCanvasObj.words.forEach((word, index) => {
+        drawWord(mainCanvasCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "halvesOnly", index);
     });
     
     //console.log("mainCanvas", mainCanvasObj);
@@ -223,15 +223,15 @@ function redrawCurrentEffectCanvas() {
 
     // draw columns only by giving drawWord a special keyword
     effectCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params);
-    mainCanvasObj.words.forEach((word) => {
-        drawWord(effectCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "columnsOnly");
+    mainCanvasObj.words.forEach((word, index) => {
+        drawWord(effectCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "columnsOnly", index);
     });
 
     // draw columns
     console.log("redrawing effects canvas!", effectCtx);
 }
 
-function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
+function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) {
     if (wordObj.chars.length === 0) return;
 
     ctx.save();
@@ -272,7 +272,7 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially) {
             });
         } else {
             // per word
-            drawColumns(ctx, wordObj.totalCols, parameters);
+            drawColumns(ctx, wordObj.totalCols, parameters, wordIndex);
         }
     }
     
@@ -629,7 +629,7 @@ function redrawGalleryCanvas(canvasObj) {
             assembledParams.textLuminance = 0.6;
         }
         canvasObj.ctx.fillStyle = chromaColorFromParams(assembledParams);
-        drawWord(canvasObj.ctx, xPos, yPos, word, assembledParams);
+        drawWord(canvasObj.ctx, xPos, yPos, word, assembledParams, 0); //dont give actual index
         colsAdvanced += (word.totalCols);
     });
 }
