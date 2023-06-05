@@ -20,6 +20,9 @@ const fontMetrics = {
     }
 }
 
+// global dev settings, temporary
+const debugColors = false;
+
 // canvases
 function collectCanvases(querySelector) {
     const canvasData = {};
@@ -58,12 +61,12 @@ const mainCanvasObj = {
         // the redraw conditions for these from sidebar changes are in
         // updateMainCanvasesFromChange(), make sure its up to date
 
-        topFont: "bold",
+        topFont: "double",
         bottomFont: "bold",
         colHeight: 16,
         fontSize: 12,
         effectContext: "2d",
-        colEffect: "bend",
+        colEffect: "bendCross",
         colBottomOffset: 1,
         applyEffectPer: "letter",
         isFlipped: "odd",
@@ -200,7 +203,7 @@ function setMainCanvasWordPositions() {
 function redrawMainCanvas() {
     const mainCanvasCtx = mainCanvasObj.ctxStack[0];
     // background
-    mainCanvasCtx.fillStyle = chromaColorFromParams(mainCanvasObj.params, 0.0);
+    mainCanvasCtx.fillStyle = "black";
     mainCanvasCtx.fillRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
 
     // draw text without columns by giving drawWord a special keyword
@@ -371,7 +374,6 @@ function drawColumns(ctx, totalCols, parameters, index) {
     } else if (parameters.colEffect === "bend" || parameters.colEffect === "bendCross") {
         // is there room for a bend to show?
         const isRoomForBend = (maxTotalCols > Math.abs(parameters.colBottomOffset));
-        const useGradients = Math.abs(topTotalCols-bottomTotalCols) <= 1;
 
         // offset bend effect. matching halves only.
         // scale bend effect. for different halves.
@@ -379,16 +381,35 @@ function drawColumns(ctx, totalCols, parameters, index) {
 
         const flipNumber = (parameters.isFlipped === "odd") ? (index % 2 === 0 ? 1 : -1) : 1;
 
-        // draw curve behind the rest
+        // draw curves behind the rest, always uses gradient
         if (parameters.colEffect === "bendCross") {
             let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
-            gradient.addColorStop(0, chromaColorFromParams(parameters));
-            gradient.addColorStop(0.5, chromaColorFromParams(parameters, 0.2));
-            gradient.addColorStop(1, chromaColorFromParams(parameters));
-            ctx.fillStyle = gradient;
-            const topX = (flipNumber === 1) ? topAdvanceWidth * (topTotalCols-1) : 0;
-            const bottomX = (flipNumber === -1) ? bottomAdvanceWidth * (bottomTotalCols-1) : 0;
-            curvedRect(ctx, topX, bottomX, 0, topWidth, bottomWidth, parameters.colHeight)
+            if (isSingleFont) {
+                gradient.addColorStop(0, chromaColorFromParams(parameters));
+                gradient.addColorStop(0.5, chromaColorFromParams(parameters, 0.2));
+                gradient.addColorStop(1, chromaColorFromParams(parameters));
+                ctx.fillStyle = gradient;
+                const topX = (flipNumber === 1) ? topAdvanceWidth * (topTotalCols-1) : 0;
+                const bottomX = (flipNumber === -1) ? bottomAdvanceWidth * (bottomTotalCols-1) : 0;
+                curvedRect(ctx, topX, bottomX, 0, topWidth, bottomWidth, parameters.colHeight)
+            } else {
+                if (topTotalCols > bottomTotalCols) {
+                    gradient.addColorStop(0, chromaColorFromParams(parameters));
+                    gradient.addColorStop(1, chromaColorFromParams(parameters, 0.2));
+                } else {
+                    gradient.addColorStop(0, chromaColorFromParams(parameters, 0.2));
+                    gradient.addColorStop(1, chromaColorFromParams(parameters));
+                }
+                
+                ctx.fillStyle = gradient;
+
+                for (let n = 0; n < minTotalCols; n++) {
+                    const topCol = (flipNumber === -1 || topTotalCols < bottomTotalCols) ? n : n + minTotalCols;
+                    const botCol = (flipNumber === -1 || bottomTotalCols < topTotalCols) ? n : n + minTotalCols;
+                    curvedRect(ctx, topAdvanceWidth * topCol, bottomAdvanceWidth * botCol, 0, topWidth, bottomWidth, parameters.colHeight)
+                }
+            }
+            
         }
 
         let bendCols = 0;
@@ -399,12 +420,15 @@ function drawColumns(ctx, totalCols, parameters, index) {
         }
 
         const topStart = (parameters.colEffect === "bendCross") ? max(-bendCols,0) : min(-bendCols,0);
-        const topEnd = (parameters.colEffect === "bendCross") ? minTotalCols + min(-bendCols,0) : maxTotalCols + max(-bendCols,0);
+        const topEnd = (parameters.colEffect === "bendCross") ? (flipNumber === -1 ? maxTotalCols : minTotalCols) + min(-bendCols,0) : maxTotalCols + max(-bendCols,0);
 
+        // for bends going out the clip area
+        const useGradients = false //Math.abs(topTotalCols-bottomTotalCols) <= 1;
         ctx.fillStyle = chromaColorFromParams(parameters);
+
+        // foreground bends
         for (let topCol = topStart; topCol < topEnd; topCol++) {
 
-            // gradient test
             if (useGradients) {
                 const botCol = topCol + bendCols;
                 let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
@@ -923,5 +947,5 @@ function getFocusedWordIndex(canvasObj, mouseX) {
 
 function chromaColorFromParams(params, lightness) {
     lightness ??= 1.0
-    return chroma.oklch(params.textLuminance * lightness, params.textChroma, params.textHue).css();
+    return chroma.oklch(params.textLuminance * lightness, params.textChroma, debugColors ? random(360) : params.textHue).css();
 }
