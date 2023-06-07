@@ -83,9 +83,12 @@ const mainCanvasObj = {
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
+    const newHeight = Math.floor(window.innerHeight - 200);
     mainCanvasObj.elStack.forEach((el) => {
         el.width = newWidth;
+        el.height = newHeight;
         el.style.width = newWidth + 'px';
+        el.style.height = newHeight + 'px';
     });
 }
 window.addEventListener('DOMContentLoaded', updateMainCanvasSize);

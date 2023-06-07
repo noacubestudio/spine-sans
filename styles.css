@@ -16,6 +16,14 @@ body {
     color: black;
 }
 
+::-webkit-scrollbar {
+    background-color: black;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+}
+
 .scrollColumn {
     display: flex;
     flex-direction: column;
@@ -44,7 +52,7 @@ body {
 }
 .canvasStack {
     position: relative;
-    height: 1000px;
+    height: max-content;
 }
 
 .canvasStack canvas{
@@ -70,6 +78,7 @@ body {
 
 .sidebar hr {
     line-height: 20px;
+    border: none;
     border-top: 1px solid #444;
     margin: 20px 0px 20px 20px;
 }
@@ -79,6 +88,7 @@ body {
     padding-bottom: 0px;
     display: flex;
     justify-content: space-between;
+    user-select: none;
 }
 
 .settingChoice {
@@ -97,4 +107,5 @@ canvas.slider {
 .site {
     color: #a3a3a3;
     margin-left: 40px;
+    margin-bottom: 80px;
 }
