@@ -64,13 +64,13 @@ body {
 
     background-color: #101010;
     color: #888;
+    position: relative;
+    z-index: 1;
 }
 
 .sidebar hr {
-    margin-left: 20px;
     line-height: 20px;
-
-    border-top: 1px solid;
+    border-top: 1px solid #444;
     margin: 20px 0px 20px 20px;
 }
 

@@ -61,17 +61,17 @@ const mainCanvasObj = {
         // the redraw conditions for these from sidebar changes are in
         // updateMainCanvasesFromChange(), make sure its up to date
 
-        topFont: "double",
-        bottomFont: "double",
+        topFont: "bold",
+        bottomFont: "bold",
         colHeight: 12,
-        fontSize: 12,
+        fontSize: 10,
         effectContext: "2d",
         colEffect: "default",
         colBottomOffset: 1,
         applyEffectPer: "letter",
         isFlipped: "odd",
-        textHue: 200,
-        textChroma: 0.1,
+        textHue: 300,
+        textChroma: 0.15,
         textLuminance: 1.0
     },
     words: []
@@ -480,7 +480,34 @@ function drawColumns(ctx, totalCols, parameters, index) {
         //     curvedRect(ctx, topX, middleX, 0, topWidth, middleWidth, parameters.colHeight / 2)
         //     curvedRect(ctx, middleX, bottomX, parameters.colHeight / 2, middleWidth, bottomWidth, parameters.colHeight / 2)
         // }
-    } 
+    } else if (parameters.colEffect === "depth") {
+
+        // reference column
+        const referenceColIndex = (minTotalCols-1) / 2;
+
+        // go through smaller number of columns
+        for (let n = 0; n < minTotalCols; n++) {
+            // start by drawing columns until reference is reached
+            // then draw the rest backwards from the reference
+            const nx = (n < referenceColIndex) ? n : minTotalCols - 1 - (n - Math.ceil(referenceColIndex));
+            
+            // calculate perspective
+            const columnsOff = nx - referenceColIndex;
+            const depth = -1;
+            const baseX = topAdvanceWidth * nx;
+            const middleX = baseX + columnsOff * depth * fontMetrics["bold"].colGap * 0.5;
+            const width = fontMetrics["bold"].colWidth;
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, parameters.colHeight);
+            gradient.addColorStop(0, chromaColorFromParams(parameters));
+            gradient.addColorStop(0.5, chromaColorFromParams(parameters, 1.0 + depth * 0.5));
+            gradient.addColorStop(1, chromaColorFromParams(parameters));
+            ctx.fillStyle = gradient;
+
+            curvedRect(ctx, baseX, middleX, 0, width, width, parameters.colHeight / 2)
+            curvedRect(ctx, middleX, baseX, parameters.colHeight / 2, width, width, parameters.colHeight / 2)
+        }
+    }
 
     
 
@@ -573,6 +600,7 @@ galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "default", params: {colEffect: "default"}},
     {string: "ab", galleryOptionName: "bend", params: {colEffect: "bend"}},
     {string: "ab", galleryOptionName: "bend behind", params: {colEffect: "bendCross"}},
+    {string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
 ]);
 sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
 sliderCanvasObjsDir["sizeSlider"].paramName = "fontSize";
@@ -635,19 +663,22 @@ function redrawGalleryCanvas(canvasObj) {
 }
 
 function redrawSliderCanvas(sliderObj) {
+    // background
+    sliderObj.ctx.clearRect(0, 0, sliderObj.el.width, sliderObj.el.height);
     
     sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.6 : 0.5);
-    sliderObj.ctx.fillRect(0, 0, sliderObj.el.width, sliderObj.el.height);
+    const sliderLineHeight = 5 * 1;
+    sliderObj.ctx.fillRect(0, sliderObj.el.height / 2 - sliderLineHeight / 2, sliderObj.el.width, sliderLineHeight);
 
     // draw the handle
     if (sliderObj.percentage !== undefined) {
         sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.98 : 1.0);
-        const handleDiameter = sliderObj.el.height;
-        const handleLeft = lerp(0, sliderObj.el.width - handleDiameter, sliderObj.percentage);
-        sliderObj.ctx.fillRect(handleLeft, 0, handleDiameter, handleDiameter);
+        const handleWidth = 5 * 3;//sliderObj.el.height;
+        const handleLeft = lerp(0, sliderObj.el.width - handleWidth, sliderObj.percentage);
+        sliderObj.ctx.fillRect(handleLeft, 0, handleWidth, sliderObj.el.height);
     }
 
-    sliderObj.labelChoiceEl.textContent = mainCanvasObj.params[sliderObj.paramName];
+    sliderObj.labelChoiceEl.textContent = formatParamForString(mainCanvasObj.params[sliderObj.paramName]);
 }
 
 function updateSliderFromMainParam(sliderObj) {
@@ -948,4 +979,14 @@ function getFocusedWordIndex(canvasObj, mouseX) {
 function chromaColorFromParams(params, lightness) {
     lightness ??= 1.0
     return chroma.oklch(params.textLuminance * lightness, params.textChroma, debugColors ? random(360) : params.textHue).css();
+}
+
+function formatParamForString(string) {
+    if (typeof string !== 'number') {
+        return string;
+    }
+    if (string % 1 !== 0) {
+        return string.toFixed(2);
+    } 
+    return string.toString();
 }
