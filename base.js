@@ -65,11 +65,15 @@ const mainCanvasObj = {
         bottomFont: "bold",
         colHeight: 12,
         fontSize: 10,
+
+        alternateA: false,
+
         effectContext: "2d",
         colEffect: "default",
         colBottomOffset: 1,
         applyEffectPer: "letter",
         isFlipped: "odd",
+
         textHue: 300,
         textChroma: 0.15,
         textLuminance: 1.0
@@ -282,9 +286,12 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) 
 function drawGlyphHalves(ctx, char, parameters) {
     const colHeight = parameters.colHeight;
 
+    const glyphKeys = getGlyphKeysFromChar(char, parameters);
+
     // get the svg data
-    const svgGlyphTop = loadedFonts[parameters.topFont].characters[char];
-    const svgGlyphBot = loadedFonts[parameters.bottomFont].characters[char];
+    const svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKeys[0]];
+    const svgGlyphBot = loadedFonts[parameters.bottomFont].characters[glyphKeys[0]];
+
     if (svgGlyphTop === undefined || svgGlyphBot === undefined) {
         console.log(char + " was not found in the font object");
         ctx.translate(4, 0);
@@ -310,6 +317,16 @@ function drawGlyphHalves(ctx, char, parameters) {
     ctx.restore();
 
     ctx.restore();
+}
+
+function getGlyphKeysFromChar(char, params) {
+    const keys = [];
+    if (char === "a" && params.alternateA === true) {
+        keys.push("aSingleStory");
+    } else {
+        keys.push(char);
+    }
+    return keys;
 }
 
 function drawColumns(ctx, totalCols, parameters, index) {
@@ -614,6 +631,15 @@ galleryCanvasObjsDir["rangeCanvas"].words = setWordsArrWithParams([
     {string: "word", galleryOptionName: "per word", params: {applyEffectPer: "word"}},
     {string: "letter", galleryOptionName: "per letter", params: {applyEffectPer: "letter"}},
 ]);
+galleryCanvasObjsDir["alternateACanvas"].params = {
+    colHeight: 1,
+    fontSize: 5,
+    colEffect: "none"
+};
+galleryCanvasObjsDir["alternateACanvas"].words = setWordsArrWithParams([
+    {string: "a", galleryOptionName: "double story", params: {alternateA: false}},
+    {string: "a", galleryOptionName: "single story", params: {alternateA: true}},
+]);
 
 function redrawGalleryCanvas(canvasObj) {
     // background
@@ -786,7 +812,7 @@ function updateMainCanvasesFromChange(usedKeysArr) {
     let effectsVisibilityChanged = false;
     usedKeysArr.forEach((key) => {
         if (["fontSize", "colHeight"].includes(key)) wordsMaybeMoved = true;
-        if (["topFont", "bottomFont"].includes(key)) lettersMaybeChanged = true;
+        if (["topFont", "bottomFont", "alternateA"].includes(key)) lettersMaybeChanged = true;
         if (["effectContext"].includes(key)) effectsVisibilityChanged = true;
     });
     console.log(`wordPos ${wordsMaybeMoved}, lettersChanged ${lettersMaybeChanged}, effectsChanged ${effectsVisibilityChanged}`);
