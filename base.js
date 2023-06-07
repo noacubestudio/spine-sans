@@ -83,7 +83,8 @@ const mainCanvasObj = {
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
-    const newHeight = Math.floor(window.innerHeight - 200);
+    const newHeight = Math.floor(window.innerHeight - 100);
+    document.getElementById('mainCanvasStack').height = newHeight;
     mainCanvasObj.elStack.forEach((el) => {
         el.width = newWidth;
         el.height = newHeight;
@@ -256,6 +257,7 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) 
     // draw the halves
     if (onlyDrawPartially !== "columnsOnly") {
         ctx.save();
+        print(wordObj.chars)
         wordObj.chars.forEach((charObj) => {
             // draw
             drawGlyphHalves(ctx, charObj.char, parameters);
@@ -292,8 +294,8 @@ function drawGlyphHalves(ctx, char, parameters) {
     const glyphKeys = getGlyphKeysFromChar(char, parameters);
 
     // get the svg data
-    const svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKeys[0]];
-    const svgGlyphBot = loadedFonts[parameters.bottomFont].characters[glyphKeys[0]];
+    let svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKeys[0]];
+    let svgGlyphBot = loadedFonts[parameters.bottomFont].characters[glyphKeys[0]];
 
     if (svgGlyphTop === undefined || svgGlyphBot === undefined) {
         console.log(char + " was not found in the font object");
@@ -304,11 +306,17 @@ function drawGlyphHalves(ctx, char, parameters) {
     ctx.save();
 
     // draw top
-    ctx.save();
-    if (svgGlyphTop.top.up !== undefined) ctx.translate(0, -Number(svgGlyphTop.top.up));
-    if (svgGlyphTop.top.left !== undefined) ctx.translate(-Number(svgGlyphTop.top.left), 0);
-    svgGlyphTop.top.paths.forEach((path) => ctx.fill(new Path2D(path)));
-    ctx.restore();
+    glyphKeys.forEach((glyphKey, index) => {
+        if (index !== 0) {
+            svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKey];
+        }
+
+        ctx.save();
+        if (svgGlyphTop.top.up !== undefined) ctx.translate(0, -Number(svgGlyphTop.top.up));
+        if (svgGlyphTop.top.left !== undefined) ctx.translate(-Number(svgGlyphTop.top.left), 0);
+        svgGlyphTop.top.paths.forEach((path) => ctx.fill(new Path2D(path)));
+        ctx.restore();
+    });
 
     // go down top half height and column height
     ctx.translate(0, fontMetrics[parameters.topFont].halfHeight + colHeight);
@@ -323,13 +331,29 @@ function drawGlyphHalves(ctx, char, parameters) {
 }
 
 function getGlyphKeysFromChar(char, params) {
-    const keys = [];
-    if (char === "a" && params.alternateA === true) {
-        keys.push("aSingleStory");
-    } else {
-        keys.push(char);
+    let key = "";
+    const additionalKeys = [];
+
+    // convert umlaut, leaving the regular char to work with next
+    if (char === "ä") {
+        char = "a";
+        additionalKeys.push("umlaut");
+    } else if (char === "ö") {
+        char = "o";
+        additionalKeys.push("umlaut");
+    } else if (char === "ü") {
+        char = "u";
+        additionalKeys.push("umlaut");
     }
-    return keys;
+
+    // alternates
+    if (char === "a" && params.alternateA === true) {
+        key = "aSingleStory";
+    } else {
+        key = char;
+    }
+
+    return [key, ...additionalKeys];
 }
 
 function drawColumns(ctx, totalCols, parameters, index) {
@@ -576,7 +600,15 @@ function diamond(ctx, x, y, width, height) {
 }
 
 function setWordsArrFromString(inputString) {
-    const splitWords = inputString.toLowerCase().split(/[^a-z]/i);
+    const splitWords = [""];
+    inputString.toLowerCase().split("").forEach((char) => {
+        if ("abcdefghijklmnopqrstuvwxyzäöü".includes(char)) {
+            splitWords[splitWords.length-1] += char;
+        } else {
+            splitWords.push("");
+        }
+    });
+    print(splitWords)
     const words = [];
     splitWords.forEach((wordString) => {
         if (wordString.length > 0) {
@@ -608,8 +640,8 @@ galleryCanvasObjsDir["baseFontCanvas"].params = {
 galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "bold", params: {topFont: "bold", bottomFont: "bold"}},
     {string: "ab", galleryOptionName: "double", params: {topFont: "double", bottomFont: "double"}},
-    {string: "ab", galleryOptionName: "double/bold", params: {topFont: "double", bottomFont: "bold"}},
-    {string: "ab", galleryOptionName: "bold/double", params: {topFont: "bold", bottomFont: "double"}},
+    {string: "ab", galleryOptionName: "double/ bold", params: {topFont: "double", bottomFont: "bold"}},
+    {string: "ab", galleryOptionName: "bold/ double", params: {topFont: "bold", bottomFont: "double"}},
 ]);
 galleryCanvasObjsDir["effectCanvas"].params = {
     colHeight: 10,
@@ -620,7 +652,7 @@ galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "default", params: {colEffect: "default"}},
     {string: "ab", galleryOptionName: "bend", params: {colEffect: "bend"}},
     {string: "ab", galleryOptionName: "bend behind", params: {colEffect: "bendCross"}},
-    {string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
+    //{string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
 ]);
 sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
 sliderCanvasObjsDir["sizeSlider"].paramName = "fontSize";

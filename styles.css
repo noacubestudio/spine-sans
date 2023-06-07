@@ -52,7 +52,6 @@ body {
 }
 .canvasStack {
     position: relative;
-    height: max-content;
 }
 
 .canvasStack canvas{
