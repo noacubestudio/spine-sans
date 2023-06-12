@@ -50,12 +50,10 @@ const mainCanvasObj = {
     elStack: [
         document.getElementById("mainCanvas"), 
         document.getElementById("effectCanvas2d"), 
-        document.getElementById("effectCanvas3d")
     ], 
     ctxStack: [
         document.getElementById("mainCanvas").getContext('2d', {alpha: false}),
         document.getElementById("effectCanvas2d").getContext('2d'),
-        document.getElementById("effectCanvas3d").getContext('webgl'),
     ],
     params: {
         // the redraw conditions for these from sidebar changes are in
@@ -68,7 +66,6 @@ const mainCanvasObj = {
 
         alternateA: false,
 
-        effectContext: "2d",
         colEffect: "default",
         colBottomOffset: 1,
         applyEffectPer: "letter",
@@ -115,9 +112,6 @@ window.setup = () => {
 
 function jsonFontsLoaded() {
 
-    // p5 setup
-    //buffer3d = createGraphics(1360, 800, WEBGL);
-
     // gui
     // canvas events
     document.getElementById("mainCanvasStack").addEventListener('click', () => {
@@ -160,7 +154,6 @@ function jsonFontsLoaded() {
     mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
     setMainCanvasWordPositions();
     redrawMainCanvas();
-    updateEffectCanvasVisibility();
     redrawCurrentEffectCanvas();
     console.log("mainCanvas", mainCanvasObj);
 
@@ -224,7 +217,7 @@ function redrawMainCanvas() {
 }
 
 function redrawCurrentEffectCanvas() {
-    const effectCtx = (mainCanvasObj.params.effectContext === "2d") ? mainCanvasObj.ctxStack[1] : mainCanvasObj.ctxStack[2];
+    const effectCtx = mainCanvasObj.ctxStack[1];
 
     // clear background, same dimensions as main canvas
     effectCtx.clearRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
@@ -844,13 +837,11 @@ function galleryHandleClick(event) {
 function updateMainCanvasesFromChange(usedKeysArr) {
     let wordsMaybeMoved = false;
     let lettersMaybeChanged = false;
-    let effectsVisibilityChanged = false;
     usedKeysArr.forEach((key) => {
         if (["fontSize", "colHeight"].includes(key)) wordsMaybeMoved = true;
         if (["topFont", "bottomFont", "alternateA"].includes(key)) lettersMaybeChanged = true;
-        if (["effectContext"].includes(key)) effectsVisibilityChanged = true;
     });
-    console.log(`wordPos ${wordsMaybeMoved}, lettersChanged ${lettersMaybeChanged}, effectsChanged ${effectsVisibilityChanged}`);
+    console.log(`wordPos ${wordsMaybeMoved}, lettersChanged ${lettersMaybeChanged}`);
     
     if (wordsMaybeMoved) {
         setMainCanvasWordPositions();
@@ -858,10 +849,6 @@ function updateMainCanvasesFromChange(usedKeysArr) {
     // redraw the letters
     if (wordsMaybeMoved || lettersMaybeChanged) {
         redrawMainCanvas();
-    }
-    // visibility of effect canvas might have been switched
-    if (effectsVisibilityChanged) {
-        updateEffectCanvasVisibility();
     }
     // only effects changed, so maybe launch animation mode
     if (!wordsMaybeMoved && !lettersMaybeChanged) {
@@ -928,16 +915,6 @@ function animateMainCanvas(animationParams, duration) {
     
     // Start the animation
     requestAnimationFrame(animationStep);
-}
-
-function updateEffectCanvasVisibility() {
-    if (mainCanvasObj.params.effectContext === "2d") {
-        mainCanvasObj.elStack[1].style.display = "block";
-        mainCanvasObj.elStack[2].style.display = "none";
-    } else {
-        mainCanvasObj.elStack[1].style.display = "none";
-        mainCanvasObj.elStack[2].style.display = "block";
-    }
 }
 
 function redrawGalleriesThatInherit(paramsToCheck) {
