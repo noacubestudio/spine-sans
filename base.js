@@ -1,7 +1,8 @@
 // load fonts into this
 const loadedFonts = {
     bold: {},
-    double: {}
+    double: {},
+    ormanents: {}
 };
 
 // font details
@@ -99,10 +100,12 @@ window.setup = () => {
     // load jsons 
     const font1Promise = fetch('./fonts/SpineSans_Bold_svg.json').then((response) => response.json());
     const font2Promise = fetch('./fonts/SpineSans_Double_svg.json').then((response) => response.json());
-    Promise.all([font1Promise, font2Promise])
+    const symbols1Promise = fetch('./fonts/SpineSans_Ornaments_svg.json').then((response) => response.json());
+    Promise.all([font1Promise, font2Promise, symbols1Promise])
     .then((results) => {
         loadedFonts["bold"] = results[0];
         loadedFonts["double"] = results[1];
+        loadedFonts["ornaments"] = results[2];
         jsonFontsLoaded();
     })
     .catch((error) => {
@@ -544,15 +547,107 @@ function drawColumns(ctx, totalCols, parameters, index) {
             curvedRect(ctx, baseX, middleX, 0, width, width, parameters.colHeight / 2)
             curvedRect(ctx, middleX, baseX, parameters.colHeight / 2, width, width, parameters.colHeight / 2)
         }
+    } else if (parameters.colEffect === "spines") {
+        // paths are contained in
+        const ornamentDetails = loadedFonts["ornaments"].symbols;
+
+        // figure out which ornaments to use
+        const totalHeight = parameters.colHeight;
+        const pixelHeight = Math.floor(totalHeight);
+
+        // Create transformation matrix, change last item to move down by right height
+        let m = new DOMMatrix();
+        m.a = 1;
+        m.b = 0;
+        m.c = 0;
+        m.d = 1;
+        m.e = 0;
+        m.f = 0;
+
+        // draw the ornaments
+        let combinePath = new Path2D();
+
+        while (m.f < pixelHeight) {
+
+            // draw one ornament
+            const ornamentAttachFont = (!isSingleFont) ? "double" : parameters.topFont;
+            const {ornamentPick, ornamentHeight} = pickOrnament(pixelHeight - m.f, ornamentAttachFont, m.f === 0 && !isSingleFont)
+            // end early if there's no more room
+            if (m.f + ornamentHeight > pixelHeight) break;
+            
+            // per path
+            for (let pathIndex = 0; pathIndex < ornamentPick.paths.length; pathIndex++) {
+                const ornamentSVG = ornamentPick.paths[pathIndex];
+                const ornamentPath = new Path2D(ornamentSVG);
+                m.e = -ornamentPick.left || 0;
+                combinePath.addPath(ornamentPath, m);
+            }
+             
+            // before next path, add height
+            m.f += ornamentHeight;
+        }
+
+        function pickOrnament(remainingHeight, basicFont, switchFonts) {
+            const connectionsType = (switchFonts) ? "boldOverDouble" : basicFont;
+            const avaliableHeights = Object.keys(ornamentDetails[connectionsType]);
+            avaliableHeights.filter((height) => Number(height) <= remainingHeight);
+
+            const randomHeight = random(avaliableHeights);
+            const randomOrnament = random(ornamentDetails[connectionsType][randomHeight]);
+            return {
+                ornamentPick: randomOrnament, 
+                ornamentHeight: Number(randomHeight) || 3,
+            };
+        }
+
+        const usedHeight = m.f;
+        
+
+        // repeat the pattern
+        ctx.save();
+        for (let col = 0; col < totalCols * fontMetrics["bold"].colMultiplier; col++) {
+            // wip
+            ctx.fill(combinePath);
+            ctx.translate(defaultAdvanceWidth, 0);
+        }
+        ctx.restore();
+
+        ctx.save();
+        // add bottom edge of straight pieces to fill remaining gap
+        if (totalHeight > usedHeight) {
+            for (let col = 0; col < bottomTotalCols; col++) {
+                ctx.fillRect(0, usedHeight, bottomWidth, totalHeight-usedHeight);
+                ctx.translate(bottomAdvanceWidth, 0);
+            }
+        }
+        ctx.restore();
     }
-
-    
-
 
 
     // end clipping
     ctx.restore();
 }
+
+// function generateOrnamentsMap(ornamentSet) {
+//     const ornamentsMap = {};
+
+//     ornamentSet["bold"].forEach((ornament, index) => {   
+//         ornamentsMap["b,"+ornament.height+",b"] = index;
+//     });
+//     ornamentSet["double"].forEach((ornament, index) => {   
+//         ornamentsMap["d,"+ornament.height+",d"] = index;
+//     });
+//     ornamentSet["boldOverDouble"].forEach((ornament, index) => {   
+//         ornamentsMap["b,"+ornament.height+",d"] = index;
+//         ornamentsMap["d,"+ornament.height+",b"] = index;
+//     });
+//     print(ornamentsMap);
+
+//     const maxHeight = 
+
+//     ornamentsMap["d2b"] = [];
+//     ornamentsMap["b6b"] = ["2d4", "3b3"];
+// }
 
 function curvedRect(ctx, xTop, xBottom, y, widthTop, widthBottom, height) {
     ctx.beginPath();
@@ -633,8 +728,8 @@ galleryCanvasObjsDir["baseFontCanvas"].params = {
 galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "bold", params: {topFont: "bold", bottomFont: "bold"}},
     {string: "ab", galleryOptionName: "double", params: {topFont: "double", bottomFont: "double"}},
-    {string: "ab", galleryOptionName: "double/ bold", params: {topFont: "double", bottomFont: "bold"}},
     {string: "ab", galleryOptionName: "bold/ double", params: {topFont: "bold", bottomFont: "double"}},
+    {string: "ab", galleryOptionName: "double/ bold", params: {topFont: "double", bottomFont: "bold"}},
 ]);
 galleryCanvasObjsDir["effectCanvas"].params = {
     colHeight: 10,
@@ -645,6 +740,7 @@ galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "default", params: {colEffect: "default"}},
     {string: "ab", galleryOptionName: "bend", params: {colEffect: "bend"}},
     {string: "ab", galleryOptionName: "bend behind", params: {colEffect: "bendCross"}},
+    {string: "ab", galleryOptionName: "spines", params: {colEffect: "spines"}},
     //{string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
 ]);
 sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
@@ -952,7 +1048,7 @@ function setSliderParamToDestinationCanvas(sliderObj, mainCanvasObj) {
     // save previous values
     mainCanvasObj.lastParams = deepClone(mainCanvasObj.params);
 
-    const newValue = lerp(sliderObj.range.min, sliderObj.range.max, sliderObj.percentage);
+    const newValue = Math.round(lerp(sliderObj.range.min, sliderObj.range.max, sliderObj.percentage));
     mainCanvasObj.params[sliderObj.paramName] = newValue;
 }
 
