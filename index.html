@@ -22,12 +22,18 @@
                     </div>
                 </div>
                 <div class="sidebar">
-                    <div class="setting"><div class="settingLabel">style</div><div class="settingChoice">default</div></div>
-                    <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
+                    <div class="infoText" id="about">
+                        <b>The Spine Sans module library</b><br><br>
+                        Spine Sans is a generative typeface built with a uniquely regular rhythm.<br><br>
+                        First, pick a combination out of the two styles. Then, explore a selection of computer-generated vector effects. Try editing the text on the left!
+                    </div>
+                    <hr>
                     <div class="setting"><div class="settingLabel">size</div><div class="settingChoice">default</div></div>
                     <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
                     <div class="setting"><div class="settingLabel">height</div><div class="settingChoice">default</div></div>
                     <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
+                    <div class="setting"><div class="settingLabel">styles</div><div class="settingChoice">default</div></div>
+                    <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
                     <hr>
                     <div class="setting"><div class="settingLabel">effect</div><div class="settingChoice">default</div></div>
                     <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
@@ -36,11 +42,12 @@
                     <hr>
                     <div class="setting"><div class="settingLabel">alternate a</div><div class="settingChoice">default</div></div>
                     <canvas id="alternateACanvas" class="gallery" height="55px" width="400px"></canvas>
+                    <div class="spacer" id="sidebarBottomSpacer"></div>
                 </div>
             </div>
-            <div class="site" id="about">
+            <!-- <div class="site" id="about">
                 work in progress.
-            </div>
+            </div> -->
         </div>
     </body>
 </html>

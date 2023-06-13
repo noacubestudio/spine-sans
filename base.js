@@ -72,8 +72,8 @@ const mainCanvasObj = {
         applyEffectPer: "letter",
         isFlipped: "odd",
 
-        textHue: 300,
-        textChroma: 0.15,
+        textHue: 0,
+        textChroma: 0.0,
         textLuminance: 1.0
     },
     words: []
@@ -81,15 +81,23 @@ const mainCanvasObj = {
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
-    const newHeight = Math.floor(window.innerHeight - 100);
+    const newHeight = Math.floor(window.innerHeight - 62);
+    const scale = window.devicePixelRatio; // Change to 1 on retina screens to see blurry canvas.
     document.getElementById('mainCanvasStack').height = newHeight;
     mainCanvasObj.elStack.forEach((el) => {
-        el.width = newWidth;
-        el.height = newHeight;
+        el.width = newWidth * scale;
+        el.height = newHeight * scale;
         el.style.width = newWidth + 'px';
         el.style.height = newHeight + 'px';
     });
 }
+
+// function updateSettingsCanvasesSize() {
+//     galleryCanvasObjsDir.forEach(({el, ctx}) => {
+//         print(el, ctx)
+//     });
+// }
+
 window.addEventListener('DOMContentLoaded', updateMainCanvasSize);
 
 // text
@@ -165,9 +173,15 @@ function jsonFontsLoaded() {
         // first check size
         const canvasObj = galleryCanvasObjsDir[key];
         const desiredHeight = canvasObj.params.fontSize * (fontMetrics["bold"].halfHeight*2 + canvasObj.params.colHeight + 8)
-        if (canvasObj.el.height !== desiredHeight) {
-            canvasObj.el.height = desiredHeight;
-        }
+
+        const newWidth = 400;
+        const newHeight = desiredHeight;
+        const scale = window.devicePixelRatio;
+        canvasObj.el.width = newWidth * scale;
+        canvasObj.el.height = newHeight * scale;
+        canvasObj.el.style.width = newWidth + 'px';
+        canvasObj.el.style.height = newHeight + 'px';
+
         redrawGalleryCanvas(galleryCanvasObjsDir[key]);
         console.log(key, galleryCanvasObjsDir[key]);
     }
@@ -175,6 +189,15 @@ function jsonFontsLoaded() {
     // initial draw of slider canvases
     for (key in sliderCanvasObjsDir) {
         const sliderObj = sliderCanvasObjsDir[key];
+
+        const newWidth = 360;
+        const newHeight = 30;
+        const scale = window.devicePixelRatio;
+        sliderObj.el.width = newWidth * scale;
+        sliderObj.el.height = newHeight * scale;
+        sliderObj.el.style.width = newWidth + 40 + 'px';
+        sliderObj.el.style.height = newHeight + 40 + 'px';
+
         updateSliderFromMainParam(sliderObj);
         redrawSliderCanvas(sliderObj);
         console.log(key, sliderObj);
@@ -206,8 +229,11 @@ function setMainCanvasWordPositions() {
 
 function redrawMainCanvas() {
     const mainCanvasCtx = mainCanvasObj.ctxStack[0];
+    mainCanvasCtx.save();
+    mainCanvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
     // background
-    mainCanvasCtx.fillStyle = "black";
+    mainCanvasCtx.fillStyle = "black"; //chroma.oklch(0.5, 0.2, mainCanvasObj.params.textHue).css();
     mainCanvasCtx.fillRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
 
     // draw text without columns by giving drawWord a special keyword
@@ -215,12 +241,14 @@ function redrawMainCanvas() {
     mainCanvasObj.words.forEach((word, index) => {
         drawWord(mainCanvasCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "halvesOnly", index);
     });
-    
+    mainCanvasCtx.restore();
     //console.log("mainCanvas", mainCanvasObj);
 }
 
 function redrawCurrentEffectCanvas() {
     const effectCtx = mainCanvasObj.ctxStack[1];
+    effectCtx.save();
+    effectCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
     // clear background, same dimensions as main canvas
     effectCtx.clearRect(0, 0, mainCanvasObj.elStack[0].width, mainCanvasObj.elStack[0].height);
@@ -231,8 +259,8 @@ function redrawCurrentEffectCanvas() {
         drawWord(effectCtx, word.xPos, word.yPos, word, mainCanvasObj.params, "columnsOnly", index);
     });
 
-    // draw columns
-    console.log("redrawing effects canvas!", effectCtx);
+    effectCtx.restore();
+    //console.log("redrawing effects canvas!", effectCtx);
 }
 
 function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) {
@@ -723,7 +751,9 @@ function setWordsArrWithParams(inputArr) {
 galleryCanvasObjsDir["baseFontCanvas"].params = {
     colHeight: 1,
     fontSize: 5,
-    colEffect: "none"
+    colEffect: "none",
+    textHue: 300,
+    textChroma: 0.2,
 };
 galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "bold", params: {topFont: "bold", bottomFont: "bold"}},
@@ -734,6 +764,8 @@ galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
 galleryCanvasObjsDir["effectCanvas"].params = {
     colHeight: 10,
     fontSize: 5,
+    textHue: 250,
+    textChroma: 0.2,
 };
 galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     // {string: "ab", galleryOptionName: "none", params: {colEffect: "none"}},
@@ -750,6 +782,8 @@ sliderCanvasObjsDir["heightSlider"].paramName = "colHeight";
 galleryCanvasObjsDir["rangeCanvas"].params = {
     colHeight: 10,
     fontSize: 5,
+    textHue: 250,
+    textChroma: 0.2,
 };
 galleryCanvasObjsDir["rangeCanvas"].words = setWordsArrWithParams([
     {string: "word", galleryOptionName: "per word", params: {applyEffectPer: "word"}},
@@ -758,14 +792,17 @@ galleryCanvasObjsDir["rangeCanvas"].words = setWordsArrWithParams([
 galleryCanvasObjsDir["alternateACanvas"].params = {
     colHeight: 1,
     fontSize: 5,
-    colEffect: "none"
+    colEffect: "none",
+    textChroma: 0.0,
 };
 galleryCanvasObjsDir["alternateACanvas"].words = setWordsArrWithParams([
-    {string: "a", galleryOptionName: "double story", params: {alternateA: false}},
-    {string: "a", galleryOptionName: "single story", params: {alternateA: true}},
+    {string: "ab", galleryOptionName: "double story", params: {alternateA: false}},
+    {string: "ab", galleryOptionName: "single story", params: {alternateA: true}},
 ]);
 
 function redrawGalleryCanvas(canvasObj) {
+    canvasObj.ctx.save();
+    canvasObj.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     // background
     canvasObj.ctx.clearRect(0, 0, canvasObj.el.width, canvasObj.el.height);
     
@@ -795,13 +832,15 @@ function redrawGalleryCanvas(canvasObj) {
 
         if (word.paramsMatchMainCanvas && wordFocused) {
             // already active
-            assembledParams.textLuminance = 0.85;
+            assembledParams.textLuminance = 0.95;
+            assembledParams.textChroma *= 0.5;
         } else if (wordFocused) {
             // focused
             assembledParams.textLuminance = 0.7;
         } else if (word.paramsMatchMainCanvas) {
             // active
-            assembledParams.textLuminance = 1.0;
+            assembledParams.textLuminance = 0.95;
+            assembledParams.textChroma *= 0.5;
         } else {
             // unfocused
             assembledParams.textLuminance = 0.6;
@@ -810,20 +849,25 @@ function redrawGalleryCanvas(canvasObj) {
         drawWord(canvasObj.ctx, xPos, yPos, word, assembledParams, 0); //dont give actual index
         colsAdvanced += (word.totalCols);
     });
+    canvasObj.ctx.restore();
 }
 
 function redrawSliderCanvas(sliderObj) {
+
+    const handleColor = chroma.oklch((sliderObj.focused) ? 0.95 : 0.8, 0.1, 300).css();
+    const lineColor = chroma.oklch((sliderObj.focused) ? 0.6 : 0.5, 0.2, 300).css();
+
     // background
     sliderObj.ctx.clearRect(0, 0, sliderObj.el.width, sliderObj.el.height);
     
-    sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.6 : 0.5);
-    const sliderLineHeight = 5 * 1;
+    sliderObj.ctx.fillStyle = lineColor;
+    const sliderLineHeight = 5 * 1 * window.devicePixelRatio;
     sliderObj.ctx.fillRect(0, sliderObj.el.height / 2 - sliderLineHeight / 2, sliderObj.el.width, sliderLineHeight);
 
     // draw the handle
     if (sliderObj.percentage !== undefined) {
-        sliderObj.ctx.fillStyle = chromaColorFromParams(mainCanvasObj.params, (sliderObj.focused) ? 0.98 : 1.0);
-        const handleWidth = 5 * 3;//sliderObj.el.height;
+        sliderObj.ctx.fillStyle = handleColor;
+        const handleWidth = 5 * 3 * window.devicePixelRatio;//sliderObj.el.height;
         const handleLeft = lerp(0, sliderObj.el.width - handleWidth, sliderObj.percentage);
         sliderObj.ctx.fillRect(handleLeft, 0, handleWidth, sliderObj.el.height);
     }
@@ -1111,8 +1155,10 @@ function getFocusedWordIndex(canvasObj, mouseX) {
 }
 
 function chromaColorFromParams(params, lightness) {
-    lightness ??= 1.0
-    return chroma.oklch(params.textLuminance * lightness, params.textChroma, debugColors ? random(360) : params.textHue).css();
+    lightness ??= 1.0;
+    const adjustedLuminance = params.textLuminance * lightness;
+    const adjustedChroma = (adjustedLuminance < 1.0) ? params.textChroma : 0.0;
+    return chroma.oklch(adjustedLuminance, adjustedChroma, debugColors ? random(360) : params.textHue).css();
 }
 
 function formatParamForString(string) {

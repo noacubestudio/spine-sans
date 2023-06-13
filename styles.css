@@ -1,6 +1,7 @@
 body {
     background-color: #000;
     font-family: 'Public Sans Roman', sans-serif;
+    overflow: hidden;
 }
 
 @font-face {
@@ -12,17 +13,18 @@ body {
 }
 
 ::selection {
-    background-color: #FFAE63;
-    color: black;
+    background-color: #a43cff;
+    color: white;
 }
 
 ::-webkit-scrollbar {
-    background-color: black;
+    /* background-color: #101010; */
+    display: none;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #333;
-}
+/* ::-webkit-scrollbar-thumb {
+    background: #101010;
+} */
 
 .scrollColumn {
     display: flex;
@@ -73,6 +75,12 @@ body {
     color: #888;
     position: relative;
     z-index: 1;
+
+    height: 100vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 
 .sidebar hr {
@@ -95,6 +103,7 @@ body {
 }
 
 canvas.gallery {
+    margin-top: 10px;
     cursor: pointer;
 }
 
@@ -103,8 +112,16 @@ canvas.slider {
     cursor: pointer;
 }
 
-.site {
+.infoText {
     color: #a3a3a3;
-    margin-left: 40px;
-    margin-bottom: 80px;
+    padding: 18px 20px;
+}
+
+b.infoText {
+    color: #c9c9c9;
+    font-weight: 700;
+}
+
+.spacer {
+    height: 100px;
 }
