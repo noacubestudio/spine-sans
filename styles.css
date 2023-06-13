@@ -76,7 +76,7 @@ body {
     position: relative;
     z-index: 1;
 
-    height: 100vh;
+    height: 100dvh;
     overflow-y: scroll;
     overflow-x: hidden;
     -ms-overflow-style: none;  /* IE and Edge */
@@ -122,6 +122,17 @@ b.infoText {
     font-weight: 700;
 }
 
-.spacer {
-    height: 100px;
+#colophon.infoText {
+    padding-top: 50px;
+    padding-bottom: 20px;
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+a {
+    text-decoration: underline;
+}
+
+a:hover {
+    color: white;
 }
