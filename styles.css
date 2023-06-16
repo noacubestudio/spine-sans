@@ -76,7 +76,7 @@ body {
     position: relative;
     z-index: 1;
 
-    height: 100dvh;
+    height: 100vh;
     overflow-y: scroll;
     overflow-x: hidden;
     -ms-overflow-style: none;  /* IE and Edge */

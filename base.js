@@ -78,6 +78,8 @@ const mainCanvasObj = {
     },
     words: []
 }
+const sidebarHue = 220;
+const sidebarChroma = 0.1;
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
@@ -752,8 +754,8 @@ galleryCanvasObjsDir["baseFontCanvas"].params = {
     colHeight: 1,
     fontSize: 5,
     colEffect: "none",
-    textHue: 300,
-    textChroma: 0.2,
+    textHue: sidebarHue,
+    textChroma: sidebarChroma,
 };
 galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "bold", params: {topFont: "bold", bottomFont: "bold"}},
@@ -764,8 +766,8 @@ galleryCanvasObjsDir["baseFontCanvas"].words = setWordsArrWithParams([
 galleryCanvasObjsDir["effectCanvas"].params = {
     colHeight: 10,
     fontSize: 5,
-    textHue: 250,
-    textChroma: 0.2,
+    textHue: sidebarHue,
+    textChroma: sidebarChroma,
 };
 galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     // {string: "ab", galleryOptionName: "none", params: {colEffect: "none"}},
@@ -782,8 +784,8 @@ sliderCanvasObjsDir["heightSlider"].paramName = "colHeight";
 galleryCanvasObjsDir["rangeCanvas"].params = {
     colHeight: 10,
     fontSize: 5,
-    textHue: 250,
-    textChroma: 0.2,
+    textHue: sidebarHue,
+    textChroma: sidebarChroma,
 };
 galleryCanvasObjsDir["rangeCanvas"].words = setWordsArrWithParams([
     {string: "word", galleryOptionName: "per word", params: {applyEffectPer: "word"}},
@@ -793,7 +795,8 @@ galleryCanvasObjsDir["alternateACanvas"].params = {
     colHeight: 1,
     fontSize: 5,
     colEffect: "none",
-    textChroma: 0.0,
+    textHue: sidebarHue,
+    textChroma: sidebarChroma,
 };
 galleryCanvasObjsDir["alternateACanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "double story", params: {alternateA: false}},
@@ -854,8 +857,8 @@ function redrawGalleryCanvas(canvasObj) {
 
 function redrawSliderCanvas(sliderObj) {
 
-    const handleColor = chroma.oklch((sliderObj.focused) ? 0.95 : 0.8, 0.1, 300).css();
-    const lineColor = chroma.oklch((sliderObj.focused) ? 0.6 : 0.5, 0.2, 300).css();
+    const handleColor = chroma.oklch((sliderObj.focused) ? 0.95 : 0.8, sidebarChroma * 0.5, sidebarHue).css();
+    const lineColor = chroma.oklch((sliderObj.focused) ? 0.6 : 0.5, sidebarChroma, sidebarHue).css();
 
     // background
     sliderObj.ctx.clearRect(0, 0, sliderObj.el.width, sliderObj.el.height);
