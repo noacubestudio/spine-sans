@@ -214,7 +214,18 @@ function setMainCanvasWordPositions() {
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
     const advanceHeight = styleMetrics.halfHeight * 2 + mainCanvasObj.params.colHeight + 3;
 
-    const maxColsInLine = 26;
+    const maxColsInLine = getLineWidth();
+
+    function getLineWidth() {
+        const canvasWidth = mainCanvasObj.elStack[0].width;
+
+        const advanceWidth = (fontMetrics.bold.colWidth + fontMetrics.bold.colGap);
+        const unitScale = window.devicePixelRatio * mainCanvasObj.params.fontSize
+        const pixelsPerLine = advanceWidth * unitScale;
+        
+        return Math.floor((canvasWidth / pixelsPerLine) - 1.6);
+    }
+
     let colsAdvanced = 0;
     let linesAdvanced = 0;
 
@@ -278,7 +289,6 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) 
     // calculate with bold as default, used to go to next letter
     const styleMetrics = fontMetrics["bold"];
     const advanceWidth = (styleMetrics.colWidth + styleMetrics.colGap) * styleMetrics.colMultiplier;
-
 
     // draw the halves
     if (onlyDrawPartially !== "columnsOnly") {
@@ -375,7 +385,7 @@ function getGlyphKeysFromChar(char, params, lastChar) {
 
     // alternates
     if (char === "a" && params.alternateA === true) {
-        key = "aSingleStory";
+        key = {top: "aSingleStory", bottom: "aSingleStory"};
     } else if (params.topFont === "bold") {
         if (lastChar === "r" && char === "f") {
             key = {top: "fLeftMissing", bottom: "f"};
