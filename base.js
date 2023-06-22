@@ -78,8 +78,8 @@ const mainCanvasObj = {
     },
     words: []
 }
-const sidebarHue = 220;
-const sidebarChroma = 0.1;
+const sidebarHue = 320;
+const sidebarChroma = 0.2;
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
@@ -284,9 +284,10 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) 
     if (onlyDrawPartially !== "columnsOnly") {
         ctx.save();
         print(wordObj.chars)
-        wordObj.chars.forEach((charObj) => {
+        wordObj.chars.forEach((charObj, index) => {
+            const lastCharObj = wordObj.chars[index-1] || {char: ""};
             // draw
-            drawGlyphHalves(ctx, charObj.char, parameters);
+            drawGlyphHalves(ctx, charObj.char, parameters, lastCharObj.char);
             // advance to next character
             ctx.translate(charObj.columns * advanceWidth, 0);
         });
@@ -314,14 +315,14 @@ function drawWord(ctx, x, y, wordObj, parameters, onlyDrawPartially, wordIndex) 
     ctx.restore();
 }
 
-function drawGlyphHalves(ctx, char, parameters) {
+function drawGlyphHalves(ctx, char, parameters, lastChar) {
     const colHeight = parameters.colHeight;
 
-    const glyphKeys = getGlyphKeysFromChar(char, parameters);
+    const glyphKeys = getGlyphKeysFromChar(char, parameters, lastChar);
 
     // get the svg data
-    let svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKeys[0]];
-    let svgGlyphBot = loadedFonts[parameters.bottomFont].characters[glyphKeys[0]];
+    let svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKeys[0].top];
+    let svgGlyphBot = loadedFonts[parameters.bottomFont].characters[glyphKeys[0].bottom];
 
     if (svgGlyphTop === undefined || svgGlyphBot === undefined) {
         console.log(char + " was not found in the font object");
@@ -334,7 +335,7 @@ function drawGlyphHalves(ctx, char, parameters) {
     // draw top
     glyphKeys.forEach((glyphKey, index) => {
         if (index !== 0) {
-            svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKey];
+            svgGlyphTop = loadedFonts[parameters.topFont].characters[glyphKey.top];
         }
 
         ctx.save();
@@ -356,27 +357,39 @@ function drawGlyphHalves(ctx, char, parameters) {
     ctx.restore();
 }
 
-function getGlyphKeysFromChar(char, params) {
-    let key = "";
+function getGlyphKeysFromChar(char, params, lastChar) {
+    let key = {top: "", bottom: ""};
     const additionalKeys = [];
 
     // convert umlaut, leaving the regular char to work with next
     if (char === "ä") {
         char = "a";
-        additionalKeys.push("umlaut");
+        additionalKeys.push({top: "umlaut"});
     } else if (char === "ö") {
         char = "o";
-        additionalKeys.push("umlaut");
+        additionalKeys.push({top: "umlaut"});
     } else if (char === "ü") {
         char = "u";
-        additionalKeys.push("umlaut");
+        additionalKeys.push({top: "umlaut"});
     }
 
     // alternates
     if (char === "a" && params.alternateA === true) {
         key = "aSingleStory";
+    } else if (params.topFont === "bold") {
+        if (lastChar === "r" && char === "f") {
+            key = {top: "fLeftMissing", bottom: "f"};
+        } else if (lastChar === "r" && char === "t") {
+            key = {top: "tLeftMissing", bottom: "t"};
+        } else if (lastChar === "f" && char === "i") {
+            key = {top: "iLeftF", bottom: "i"};
+        } else if (lastChar === "f" && char === "j") {
+            key = {top: "jLeftF", bottom: "j"};
+        } else {
+            key = {top: char, bottom: char};
+        }
     } else {
-        key = char;
+        key = {top: char, bottom: char};
     }
 
     return [key, ...additionalKeys];
