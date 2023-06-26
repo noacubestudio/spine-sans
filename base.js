@@ -5,6 +5,8 @@ const loadedFonts = {
     ormanents: {}
 };
 
+const printMode = false;
+
 // font details
 const fontMetrics = {
     bold: { // this one is assumed to be always used for font spacing calculations, since they end up with the same effect
@@ -63,7 +65,7 @@ const mainCanvasObj = {
         topFont: "bold",
         bottomFont: "bold",
         colHeight: 12,
-        fontSize: 10,
+        fontSize: (printMode) ? 11 : 10,
 
         alternateA: false,
 
@@ -83,7 +85,7 @@ const sidebarChroma = 0.2;
 
 function updateMainCanvasSize() {
     const newWidth = Math.floor(window.innerWidth - 400);
-    const newHeight = Math.floor(window.innerHeight - 62);
+    const newHeight = Math.floor(window.innerHeight - (printMode ? 0 : 62));
     const scale = window.devicePixelRatio; // Change to 1 on retina screens to see blurry canvas.
     document.getElementById('mainCanvasStack').height = newHeight;
     mainCanvasObj.elStack.forEach((el) => {
@@ -229,13 +231,16 @@ function setMainCanvasWordPositions() {
     let colsAdvanced = 0;
     let linesAdvanced = 0;
 
+    const leftEdge = (printMode) ? 60 : 40;
+    const topEdge = (printMode) ? (mainCanvasObj.params.colHeight > 6 ? 60 : 336) : 50;
+
     mainCanvasObj.words.forEach((word) => {
         if (colsAdvanced + word.totalCols > maxColsInLine && word.totalCols <= maxColsInLine) {
             colsAdvanced = 0;
             linesAdvanced++;
         }
-        word.xPos = 40 + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
-        word.yPos = 50 + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
+        word.xPos = leftEdge + colsAdvanced * advanceWidth * mainCanvasObj.params.fontSize;
+        word.yPos = topEdge + linesAdvanced * advanceHeight * mainCanvasObj.params.fontSize;
         colsAdvanced += (word.totalCols + 1);
     });
 }
@@ -422,12 +427,12 @@ function drawColumns(ctx, totalCols, parameters, index) {
     const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
 
     // shapes at top and bottom to slightly overshoot stuff
-    for (let col = 0; col < topTotalCols; col++) {
-        ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
-    }
-    for (let col = 0; col < bottomTotalCols; col++) {
-        ctx.fillRect(col * bottomAdvanceWidth, parameters.colHeight-0.1, fontMetrics[parameters.bottomFont].colWidth, 0.2);
-    }
+    // for (let col = 0; col < topTotalCols; col++) {
+    //     ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
+    // }
+    // for (let col = 0; col < bottomTotalCols; col++) {
+    //     ctx.fillRect(col * bottomAdvanceWidth, parameters.colHeight-0.1, fontMetrics[parameters.bottomFont].colWidth, 0.2);
+    // }
 
     // clipping rectangle
     const defaultColWidth = fontMetrics["bold"].colWidth;
@@ -796,7 +801,7 @@ galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     // {string: "ab", galleryOptionName: "none", params: {colEffect: "none"}},
     {string: "ab", galleryOptionName: "default", params: {colEffect: "default"}},
     {string: "ab", galleryOptionName: "bend", params: {colEffect: "bend"}},
-    {string: "ab", galleryOptionName: "bend behind", params: {colEffect: "bendCross"}},
+    {string: "ab", galleryOptionName: "cross", params: {colEffect: "bendCross"}},
     {string: "ab", galleryOptionName: "spines", params: {colEffect: "spines"}},
     //{string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
 ]);
