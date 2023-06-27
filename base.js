@@ -5,7 +5,7 @@ const loadedFonts = {
     ormanents: {}
 };
 
-const printMode = true;
+const printMode = false;
 
 // font details
 const fontMetrics = {

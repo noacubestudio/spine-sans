@@ -41,7 +41,7 @@ body {
 }
 
 .topToolbar {
-    height: 0px; /* 60px normally, 0 in print mode? */
+    height: 60px; /* 60px normally, 0 in print mode? */
 }
 
 .topToolbar input {
