@@ -665,7 +665,16 @@ function drawColumns(ctx, totalCols, parameters, index) {
         ctx.save();
         for (let col = 0; col < totalCols * fontMetrics["bold"].colMultiplier; col++) {
             // wip
-            ctx.fill(combinePath);
+            if (parameters.topFont === "double" && parameters.bottomFont === "bold") {
+                ctx.save();
+                ctx.scale(1, -1);
+                ctx.translate(0, -usedHeight);
+                ctx.fill(combinePath);
+                ctx.restore();
+            } else {
+                ctx.fill(combinePath);
+            }
+
             ctx.translate(defaultAdvanceWidth, 0);
         }
         ctx.restore();
