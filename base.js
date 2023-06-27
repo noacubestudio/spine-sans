@@ -5,7 +5,7 @@ const loadedFonts = {
     ormanents: {}
 };
 
-const printMode = false;
+const printMode = true;
 
 // font details
 const fontMetrics = {
@@ -232,7 +232,7 @@ function setMainCanvasWordPositions() {
     let linesAdvanced = 0;
 
     const leftEdge = (printMode) ? 60 : 40;
-    const topEdge = (printMode) ? (mainCanvasObj.params.colHeight > 6 ? 60 : 336) : 50;
+    const topEdge = (printMode) ? (mainCanvasObj.params.colHeight > 6 ? 60 : 320) : 50;
 
     mainCanvasObj.words.forEach((word) => {
         if (colsAdvanced + word.totalCols > maxColsInLine && word.totalCols <= maxColsInLine) {
