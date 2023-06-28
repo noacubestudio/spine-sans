@@ -22,36 +22,39 @@
                     </div>
                 </div>
                 <div class="sidebar">
-                    <div class="infoText" id="about">
-                        <b>The Spine Sans module library</b><br><br>
-                        Spine Sans is a typeface split into halves, featuring a uniquely regular horizontal rhythm to function as shelves for generative effects.<br><br>
-                        First, pick a combination of the two styles. Then, explore a selection of computer-generated vector effects applied on whole words or per letter. Try typing text on the left!
+                    <div class="sidebarScroll">
+                        <div class="infoText" id="about">
+                            <b>spine sans combinator</b><br><br>
+                            Spine Sans is a typeface split into halves, featuring a uniquely regular horizontal rhythm to function as shelves for generative effects.<br><br>
+                            First, pick a combination of the two styles. Then, explore a selection of computer-generated vector effects applied on whole words or per letter. Try typing text on the left!
+                        </div>
+                        <hr>
+                        <div class="setting"><div class="settingLabel">size</div><div class="settingChoice">default</div></div>
+                        <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
+                        <div class="setting"><div class="settingLabel">height</div><div class="settingChoice">default</div></div>
+                        <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
+                        <div class="setting"><div class="settingLabel">styles</div><div class="settingChoice">default</div></div>
+                        <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
+                        <hr>
+                        <div class="setting"><div class="settingLabel">effect</div><div class="settingChoice">default</div></div>
+                        <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
+                        <div class="setting"><div class="settingLabel">effect range</div><div class="settingChoice">default</div></div>
+                        <canvas id="rangeCanvas" class="gallery" height="55px" width="400px"></canvas>
+                        <hr>
+                        <div class="setting"><div class="settingLabel">alternate a</div><div class="settingChoice">default</div></div>
+                        <canvas id="alternateACanvas" class="gallery" height="55px" width="400px"></canvas>
+                        <hr>
+                        <div class="infoText" id="end">
+                            <b>Finished exploring?</b><br><br>
+                            Check back here in the future for sharing, animation and exporting features!
+                        </div>
+                        <div class="infoText" id="colophon">
+                            <b>Colophon</b><br>
+                            Spine Sans was created by <a href="https://github.com/noacubestudio/spine-sans/">noa</a>.<br>
+                            Programmed using HTML Canvas, p5.js and chroma.js. Instead of a classic font format, the custom glyphs are loaded as SVG.
+                        </div>
                     </div>
-                    <hr>
-                    <div class="setting"><div class="settingLabel">size</div><div class="settingChoice">default</div></div>
-                    <canvas id="sizeSlider" class="slider" height="30px" width="360px"></canvas>
-                    <div class="setting"><div class="settingLabel">height</div><div class="settingChoice">default</div></div>
-                    <canvas id="heightSlider" class="slider" height="30px" width="360px"></canvas>
-                    <div class="setting"><div class="settingLabel">styles</div><div class="settingChoice">default</div></div>
-                    <canvas id="baseFontCanvas" class="gallery" height="55px" width="400px"></canvas>
-                    <hr>
-                    <div class="setting"><div class="settingLabel">effect</div><div class="settingChoice">default</div></div>
-                    <canvas id="effectCanvas" class="gallery" height="55px" width="400px"></canvas>
-                    <div class="setting"><div class="settingLabel">effect range</div><div class="settingChoice">default</div></div>
-                    <canvas id="rangeCanvas" class="gallery" height="55px" width="400px"></canvas>
-                    <hr>
-                    <div class="setting"><div class="settingLabel">alternate a</div><div class="settingChoice">default</div></div>
-                    <canvas id="alternateACanvas" class="gallery" height="55px" width="400px"></canvas>
-                    <hr>
-                    <div class="infoText" id="end">
-                        <b>Finished exploring?</b><br><br>
-                        Check back here in the future for sharing, animation and exporting features!
-                    </div>
-                    <div class="infoText" id="colophon">
-                        <b>Colophon</b><br>
-                        Spine Sans was created by <a href="https://github.com/noacubestudio/spine-sans/">noa</a>.<br>
-                        Programmed using HTML Canvas, p5.js and chroma.js. Instead of a classic font format, the custom glyphs are loaded as SVG.
-                    </div>
+                    
                 </div>
             </div>
             <!-- <div class="site" id="about">
