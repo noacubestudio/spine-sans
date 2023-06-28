@@ -426,13 +426,18 @@ function drawColumns(ctx, totalCols, parameters, index) {
     const topAdvanceWidth = topWidth + fontMetrics[parameters.topFont].colGap;
     const bottomAdvanceWidth = bottomWidth + fontMetrics[parameters.bottomFont].colGap;
 
-    // shapes at top and bottom to slightly overshoot stuff
-    // for (let col = 0; col < topTotalCols; col++) {
-    //     ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
-    // }
-    // for (let col = 0; col < bottomTotalCols; col++) {
-    //     ctx.fillRect(col * bottomAdvanceWidth, parameters.colHeight-0.1, fontMetrics[parameters.bottomFont].colWidth, 0.2);
-    // }
+    // if not on pixel grid
+    if ((parameters.fontSize * window.devicePixelRatio) % 2 !== 0) {
+        //shapes at top and bottom to slightly overshoot stuff
+        for (let col = 0; col < topTotalCols; col++) {
+            ctx.fillRect(col * topAdvanceWidth, 0.1, fontMetrics[parameters.topFont].colWidth, -0.2);
+        }
+        for (let col = 0; col < bottomTotalCols; col++) {
+            ctx.fillRect(col * bottomAdvanceWidth, parameters.colHeight-0.1, fontMetrics[parameters.bottomFont].colWidth, 0.2);
+        }
+    }
+
+
 
     // clipping rectangle
     const defaultColWidth = fontMetrics["bold"].colWidth;
