@@ -65,7 +65,7 @@ const mainCanvasObj = {
         topFont: "bold",
         bottomFont: "bold",
         colHeight: 12,
-        fontSize: (printMode) ? 11 : 10,
+        fontSize: (printMode) ? 11 : 14,
 
         alternateA: false,
 
@@ -819,7 +819,7 @@ galleryCanvasObjsDir["effectCanvas"].words = setWordsArrWithParams([
     {string: "ab", galleryOptionName: "spines", params: {colEffect: "spines"}},
     //{string: "ab", galleryOptionName: "depth", params: {colEffect: "depth"}},
 ]);
-sliderCanvasObjsDir["sizeSlider"].range = {min: 4, max: 16};
+sliderCanvasObjsDir["sizeSlider"].range = {min: 8, max: 20};
 sliderCanvasObjsDir["sizeSlider"].paramName = "fontSize";
 sliderCanvasObjsDir["heightSlider"].range = {min: 0, max: 24};
 sliderCanvasObjsDir["heightSlider"].paramName = "colHeight";
