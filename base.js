@@ -152,11 +152,25 @@ function jsonFontsLoaded() {
         sliderEl.addEventListener("mouseleave", (e) => sliderHandleMouseLeave(e));
     }
 
-    textInputEl.addEventListener("input", () => {
-        mainCanvasObj.words = setWordsArrFromString(textInputEl.value);
+    textInputEl.addEventListener("input", () => updatedInput());
+    textInputEl.addEventListener("selectionchange", () => updatedInput());
+    
+    function updatedInput() {
+        const selectionRange = {start: textInputEl.selectionStart, end: textInputEl.selectionEnd};
+        mainCanvasObj.words = setWordsArrFromString(textInputEl.value, selectionRange);
         setMainCanvasWordPositions();
         redrawMainCanvas();
         redrawCurrentEffectCanvas();
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement !== textInputEl) {
+            if (e.key.match(/[a-z]/i)) {
+                e.preventDefault();
+            }
+            textInputEl.focus();
+            textInputEl.setSelectionRange(textInputEl.value.length, textInputEl.value.length);
+        }
     });
       
     window.addEventListener('resize', () => {
@@ -759,7 +773,7 @@ function diamond(ctx, x, y, width, height) {
     ctx.fill();
 }
 
-function setWordsArrFromString(inputString) {
+function setWordsArrFromString(inputString, selectionRange) {
     const splitWords = [""];
     inputString.toLowerCase().split("").forEach((char) => {
         if ("abcdefghijklmnopqrstuvwxyzäöü".includes(char)) {
@@ -768,7 +782,7 @@ function setWordsArrFromString(inputString) {
             splitWords.push("");
         }
     });
-    print(splitWords)
+    print(splitWords, selectionRange)
     const words = [];
     splitWords.forEach((wordString) => {
         if (wordString.length > 0) {
